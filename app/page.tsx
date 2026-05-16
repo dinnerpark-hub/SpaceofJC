@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
-import FeatureCards from "@/components/FeatureCards";
 import StudentModals from "@/components/StudentModals";
 import NoticeModals from "@/components/NoticeModals";
 import DdayModal from "@/components/DdayModal";
@@ -22,7 +21,6 @@ export default function Home() {
 
       <main className="flex-1">
         <Hero />
-        <FeatureCards />
       </main>
 
       {/* 전역 모달들 (해시 기반 팝업) */}
