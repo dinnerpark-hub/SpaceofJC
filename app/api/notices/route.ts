@@ -29,9 +29,9 @@ export async function GET(request: Request) {
       ORDER BY created_at DESC
     `;
     return NextResponse.json(notices);
-  } catch (error) {
+  } catch (error: any) {
     console.error("DB Error:", error);
-    return NextResponse.json({ error: "공지사항을 불러오는데 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "데이터를 불러오는데 실패했습니다." }, { status: 500 });
   }
 }
 
@@ -52,8 +52,8 @@ export async function POST(request: Request) {
     `;
 
     return NextResponse.json(result[0]);
-  } catch (error) {
+  } catch (error: any) {
     console.error("DB Error:", error);
-    return NextResponse.json({ error: "공지사항 저장에 실패했습니다." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "공지사항 저장에 실패했습니다." }, { status: 500 });
   }
 }
