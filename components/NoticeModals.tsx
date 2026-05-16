@@ -3,10 +3,8 @@
 import { useState, useEffect } from "react";
 
 /* ===================================
-   NoticeModals 컴포넌트
-   - 공지사항 목록/상세보기/글쓰기
-   - 삭제 기능 및 상세 팝업
-   - 관리자 인증 UI 통합 (1025)
+   NoticeModals 컴포넌트 (버그 수정 버전)
+   - 무한 루프 방지 및 해시 감지 로직 최적화
    =================================== */
 
 interface Notice {
@@ -22,13 +20,14 @@ export default function NoticeModals() {
   const [isWriteMode, setIsWriteMode] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null);
   const [isAuth, setIsAuth] = useState(false);
-  const [isAuthRequired, setIsAuthRequired] = useState(false); // 인증 화면 표시 여부
+  const [isAuthRequired, setIsAuthRequired] = useState(false);
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null); // 인증 후 실행할 작업
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   
   const [formData, setFormData] = useState({ title: "", content: "" });
 
+  // 목록 불러오기 함수 (독립적 실행)
   const fetchNotices = async () => {
     setIsLoading(true);
     try {
@@ -36,38 +35,33 @@ export default function NoticeModals() {
       if (response.ok) {
         const data = await response.json();
         setNotices(data);
+        return data; // 데이터 직접 반환 (클로저 문제 방지)
       }
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
       setIsLoading(false);
     }
+    return [];
   };
 
   useEffect(() => {
     const handleHashChange = async () => {
       const hash = window.location.hash;
+      
       if (hash === "#notices") {
         setIsOpen(true);
         setIsWriteMode(false);
         setSelectedNotice(null);
-        fetchNotices();
+        await fetchNotices();
       } else if (hash.startsWith("#notice-")) {
         const id = hash.replace("#notice-", "");
         setIsOpen(true);
         setIsWriteMode(false);
         
-        // 목록이 비어있으면 먼저 가져옴
-        let currentNotices = notices;
-        if (currentNotices.length === 0) {
-          const response = await fetch("/api/notices");
-          if (response.ok) {
-            currentNotices = await response.json();
-            setNotices(currentNotices);
-          }
-        }
-        
-        const target = currentNotices.find(n => n.id === id);
+        // 상세 보기 시에는 항상 최신 목록을 가져와서 매칭 (클로저 영향 없음)
+        const currentData = await fetchNotices();
+        const target = currentData.find((n: Notice) => n.id === id);
         if (target) {
           setSelectedNotice(target);
         }
@@ -80,7 +74,7 @@ export default function NoticeModals() {
     handleHashChange();
     
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [notices]); // notices 의존성 추가하여 데이터 로드 후 상세 매칭 보장
+  }, []); // 의존성 없음 (안정적)
 
   const closeModal = () => {
     setIsOpen(false);
@@ -94,7 +88,6 @@ export default function NoticeModals() {
     window.history.replaceState(null, "", window.location.pathname);
   };
 
-  // 공통 인증 처리
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === "1025") {
@@ -111,7 +104,6 @@ export default function NoticeModals() {
     }
   };
 
-  // 인증이 필요한 작업 실행 전 체크
   const runWithAuth = (action: () => void) => {
     if (isAuth) {
       action();
@@ -134,7 +126,7 @@ export default function NoticeModals() {
         alert("공지사항이 등록되었습니다.");
         setIsWriteMode(false);
         setFormData({ title: "", content: "" });
-        fetchNotices();
+        await fetchNotices();
       }
     } catch (error) {
       alert("등록 오류");
@@ -148,7 +140,7 @@ export default function NoticeModals() {
       if (response.ok) {
         alert("삭제되었습니다.");
         setSelectedNotice(null);
-        fetchNotices();
+        await fetchNotices();
       }
     } catch (error) {
       alert("삭제 오류");
@@ -166,7 +158,7 @@ export default function NoticeModals() {
               <h2 className="text-xl font-bold text-white flex items-center gap-2">📢 공지사항</h2>
               <div className="flex items-center gap-3">
                 {!isWriteMode && !isAuthRequired && (
-                  <button onClick={() => runWithAuth(() => setIsWriteMode(true))} className="text-xs bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-xl font-bold transition-all">글쓰기</button>
+                  <button onClick={() => runWithAuth(() => setIsWriteMode(true))} className="text-xs bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20">글쓰기</button>
                 )}
                 <button onClick={closeModal} className="text-slate-400 hover:text-white text-2xl">&times;</button>
               </div>
@@ -174,7 +166,6 @@ export default function NoticeModals() {
 
             <div className="flex-1 overflow-y-auto p-6">
               {isAuthRequired ? (
-                /* ── [인증 화면] 학생목록과 동일한 UI ── */
                 <div className="py-20 flex flex-col items-center justify-center text-center">
                   <div className="mb-6 h-16 w-16 bg-indigo-500/20 rounded-full flex items-center justify-center text-3xl">🔒</div>
                   <h3 className="text-lg font-semibold text-white mb-2">관리자 인증</h3>
@@ -188,12 +179,11 @@ export default function NoticeModals() {
                       onChange={e => setPassword(e.target.value)}
                       className="flex-1 rounded-xl bg-white/10 border border-white/10 p-3 text-white outline-none focus:border-indigo-500"
                     />
-                    <button type="submit" className="bg-indigo-500 px-6 rounded-xl font-bold hover:bg-indigo-400 transition-all text-white">확인</button>
+                    <button type="submit" className="bg-indigo-500 px-6 rounded-xl font-bold hover:bg-indigo-400 text-white">확인</button>
                   </form>
                   <button onClick={() => { setIsAuthRequired(false); setIsWriteMode(false); }} className="mt-4 text-xs text-slate-500">돌아가기</button>
                 </div>
               ) : isWriteMode ? (
-                /* ── [글쓰기 화면] ── */
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <input type="text" placeholder="제목" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full rounded-xl bg-white/5 border border-white/10 p-4 text-white font-bold outline-none focus:border-indigo-500" required />
                   <textarea placeholder="내용" value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} className="w-full h-40 rounded-xl bg-white/5 border border-white/10 p-4 text-white outline-none focus:border-indigo-500 resize-none" required />
@@ -203,7 +193,6 @@ export default function NoticeModals() {
                   </div>
                 </form>
               ) : selectedNotice ? (
-                /* ── [상세 보기 화면] ── */
                 <div className="animate-fade-in">
                   <div className="mb-6 flex flex-col gap-2 border-b border-white/5 pb-4">
                     <h3 className="text-2xl font-bold text-white">{selectedNotice.title}</h3>
@@ -219,7 +208,6 @@ export default function NoticeModals() {
                   </div>
                 </div>
               ) : (
-                /* ── [목록 화면] ── */
                 <div className="rounded-2xl border border-white/5 overflow-hidden">
                   <table className="w-full text-left text-sm">
                     <thead className="bg-white/5 text-slate-500 text-[11px] uppercase tracking-wider font-bold">
