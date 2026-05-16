@@ -36,16 +36,19 @@ export default function Header() {
 
         {/* ── 데스크톱 네비게이션 ── */}
         <nav className="hidden items-center gap-1 md:flex" aria-label="메인 메뉴">
-          {navLinks.map((link) => (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors duration-200 hover:bg-white/5 hover:text-white"
-            >
-              {link.label}
-            </Link>
-          ))}
-          {/* 여기에 데스크톱 전용 버튼(로그인 등)을 추가하세요 */}
+          {navLinks.map((link) => {
+            const isHash = link.href.startsWith("#");
+            const Component = isHash ? "a" : Link;
+            return (
+              <Component
+                key={link.label}
+                href={link.href}
+                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors duration-200 hover:bg-white/5 hover:text-white"
+              >
+                {link.label}
+              </Component>
+            );
+          })}
         </nav>
 
         {/* ── 모바일 메뉴 토글 ── */}
@@ -74,17 +77,20 @@ export default function Header() {
       {mobileMenuOpen && (
         <nav className="border-t border-white/5 px-4 pb-4 md:hidden" aria-label="모바일 메뉴">
           <div className="flex flex-col gap-1 pt-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
-            {/* 여기에 모바일 전용 메뉴 항목을 추가하세요 */}
+            {navLinks.map((link) => {
+              const isHash = link.href.startsWith("#");
+              const Component = isHash ? "a" : Link;
+              return (
+                <Component
+                  key={link.label}
+                  href={link.href}
+                  className="rounded-lg px-4 py-3 text-sm font-medium text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </Component>
+              );
+            })}
           </div>
         </nav>
       )}
