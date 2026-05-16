@@ -91,9 +91,13 @@ export default function NoticeModals() {
         setIsAuth(false);
         setFormData({ title: "", content: "" });
         fetchNotices();
+      } else {
+        const errorData = await response.json();
+        alert(`등록 실패: ${errorData.error || "알 수 없는 오류"}`);
       }
     } catch (error) {
-      alert("등록 실패");
+      console.error("Submit error:", error);
+      alert("서버 통신 중 오류가 발생했습니다.");
     }
   };
 
