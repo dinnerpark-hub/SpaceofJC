@@ -1,19 +1,41 @@
+"use client";
+
+import { useState, useEffect } from "react";
+
 /* ===================================
    Hero 컴포넌트
    - 메인 환영 문구 + CTA 버튼
-   - 배경 그라디언트 & 장식 효과 포함
+   - 최신 공지사항 실시간 노출 (반짝임 효과)
    =================================== */
 
+interface Notice {
+  title: string;
+}
+
 export default function Hero() {
+  const [latestNotice, setLatestNotice] = useState<Notice | null>(null);
+
+  useEffect(() => {
+    const fetchLatestNotice = async () => {
+      try {
+        const response = await fetch("/api/notices?latest=true");
+        if (response.ok) {
+          const data = await response.json();
+          setLatestNotice(data);
+        }
+      } catch (error) {
+        console.error("Notice fetch error:", error);
+      }
+    };
+    fetchLatestNotice();
+  }, []);
+
   return (
     <section className="relative isolate flex min-h-[70vh] items-start justify-center overflow-visible px-4 pt-20 pb-24 sm:px-6 sm:pt-32 sm:pb-32 lg:pt-40 lg:pb-40">
       {/* ── 배경 장식 (글로우 효과) ── */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden">
-        {/* 상단 좌측 글로우 */}
         <div className="absolute -left-1/4 -top-1/4 h-[500px] w-[500px] rounded-full bg-indigo-500/20 blur-[100px] sm:h-[800px] sm:w-[800px]" />
-        {/* 하단 우측 글로우 */}
         <div className="absolute -right-1/4 -bottom-1/4 h-[500px] w-[500px] rounded-full bg-purple-500/15 blur-[100px] sm:h-[800px] sm:w-[800px]" />
-        {/* 중앙 은은한 글로우 */}
         <div className="absolute left-1/2 top-1/2 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-pink-500/10 blur-[120px]" />
       </div>
 
@@ -28,19 +50,16 @@ export default function Hero() {
 
         {/* 설명 (부제) */}
         <p className="mx-auto mt-4 max-w-xl text-sm font-medium tracking-wide text-indigo-300/90 sm:text-base uppercase">
-          우리 반 학생들을 위한 소통 공간입니다
+          정찬쌤과 함께하는 학생들을 위한 소통 공간입니다
         </p>
 
         {/* 상세 설명 */}
         <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-slate-400 sm:text-lg">
-          공지사항 확인, 학습 자료 다운로드, 추억 공유까지 —
-          <br className="hidden sm:block" />
           필요한 모든 것을 한 곳에서 만나보세요.
         </p>
 
         {/* CTA 버튼 그룹 */}
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          {/* 주요 CTA 버튼 (학생 정보 입력 모달 오픈) */}
           <a
             href="#register"
             className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-indigo-500 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:bg-indigo-400 hover:shadow-indigo-500/40 hover:-translate-y-1 active:translate-y-0"
@@ -49,30 +68,35 @@ export default function Hero() {
             🎒 시작하기
           </a>
 
-          {/* 보조 버튼 */}
-          <button
-            type="button"
+          <a
+            href="#notices"
             className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-8 py-4 text-sm font-semibold text-slate-300 transition-all duration-300 hover:border-white/20 hover:bg-white/10 hover:text-white hover:-translate-y-1 active:translate-y-0"
           >
             📋 공지사항 보기
-          </button>
+          </a>
         </div>
 
-        {/* 뱃지 (하단으로 이동) */}
-        <div className="mt-12 inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1.5 text-xs font-medium text-slate-400">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-          </span>
-          2026학년도 교실 운영 중
+        {/* 뱃지 및 최신 공지사항 */}
+        <div className="mt-12 flex flex-col items-center gap-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1.5 text-xs font-medium text-slate-400">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            </span>
+            2026학년도 교실 운영 중
+          </div>
+
+          {/* 최신 공지사항 프리뷰 (반짝임 효과) */}
+          {latestNotice && (
+            <div className="animate-pulse flex items-center gap-2 text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
+              <span className="text-xs font-bold bg-indigo-500 text-white px-1.5 py-0.5 rounded animate-bounce">NEW</span>
+              <p className="text-sm font-bold tracking-tight truncate max-w-[250px] sm:max-w-md">
+                {latestNotice.title}
+              </p>
+            </div>
+          )}
         </div>
       </div>
-
-
-      {/* ────────────────────────────────────────
-          여기에 히어로 섹션 하단에 추가 요소를 배치하세요
-          예시: 카드 그리드, 통계, 이미지 등
-         ──────────────────────────────────────── */}
     </section>
   );
 }

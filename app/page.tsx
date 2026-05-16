@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
 import StudentModals from "@/components/StudentModals";
+import NoticeModals from "@/components/NoticeModals";
 import Footer from "@/components/Footer";
 
 /* ===================================
@@ -32,6 +33,9 @@ export default function Home() {
 
       {/* 학생 등록 및 목록 모달 (팝업) */}
       <StudentModals />
+
+      {/* 공지사항 모달 (팝업) */}
+      <NoticeModals />
 
       {/* 하단 푸터 */}
       <Footer />

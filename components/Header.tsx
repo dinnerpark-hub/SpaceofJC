@@ -13,7 +13,7 @@ import Link from "next/link";
 const navLinks = [
   { href: "/", label: "홈" },
   { href: "#students", label: "학생목록" },
-  { href: "#", label: "공지사항" },
+  { href: "#notices", label: "공지사항" },
   { href: "#", label: "학습자료" },
 ];
 
