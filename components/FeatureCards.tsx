@@ -17,15 +17,6 @@ const features = [
     iconBg: "bg-rose-500/20",
   },
   {
-    hash: "#timetable",
-    icon: "📅",
-    title: "시간표",
-    desc: "요일별 수업 일정 확인",
-    gradient: "from-blue-500/20 to-cyan-500/20",
-    borderHover: "hover:border-blue-500/30",
-    iconBg: "bg-blue-500/20",
-  },
-  {
     hash: "#questions",
     icon: "💬",
     title: "익명 질문함",

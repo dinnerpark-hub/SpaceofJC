@@ -4,7 +4,6 @@ import FeatureCards from "@/components/FeatureCards";
 import StudentModals from "@/components/StudentModals";
 import NoticeModals from "@/components/NoticeModals";
 import DdayModal from "@/components/DdayModal";
-import TimetableModal from "@/components/TimetableModal";
 import QuestionModal from "@/components/QuestionModal";
 import GalleryModal from "@/components/GalleryModal";
 import PollModal from "@/components/PollModal";
@@ -30,7 +29,6 @@ export default function Home() {
       <StudentModals />
       <NoticeModals />
       <DdayModal />
-      <TimetableModal />
       <QuestionModal />
       <GalleryModal />
       <PollModal />

@@ -128,17 +128,20 @@ export default function Hero() {
             2026학년도 교실 운영 중
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-6 items-center w-full max-w-3xl">
             {/* 최신 공지사항 프리뷰 */}
             {latestNotice && (
               <a
                 href={`#notice-${latestNotice.id}`}
-                className="animate-pulse flex items-center gap-2 text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 shadow-lg shadow-indigo-500/5 transition-all hover:scale-[1.02] hover:bg-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
+                className="flex-1 animate-pulse flex items-center gap-3 text-indigo-300 bg-indigo-500/10 px-6 py-4 rounded-2xl border border-indigo-500/20 shadow-xl shadow-indigo-500/10 transition-all hover:scale-[1.03] hover:bg-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
               >
-                <span className="text-xs font-bold bg-indigo-500 text-white px-1.5 py-0.5 rounded animate-bounce">NEW</span>
-                <p className="text-sm font-bold tracking-tight truncate max-w-[200px] sm:max-w-xs">
-                  {latestNotice.title}
-                </p>
+                <span className="text-sm font-black bg-indigo-500 text-white px-2 py-1 rounded-lg animate-bounce">NOTICE</span>
+                <div className="text-left overflow-hidden">
+                  <p className="text-base font-bold tracking-tight truncate">
+                    {latestNotice.title}
+                  </p>
+                  <p className="text-[10px] text-indigo-400/70 font-medium uppercase mt-0.5">Click to read more</p>
+                </div>
               </a>
             )}
 
@@ -146,12 +149,15 @@ export default function Hero() {
             {nearestDday && (
               <a
                 href="#dday"
-                className="flex items-center gap-2 text-rose-300 bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20 shadow-lg shadow-rose-500/5 transition-all hover:scale-[1.02] hover:bg-rose-500/20 hover:border-rose-500/40 cursor-pointer"
+                className="flex-1 flex items-center gap-3 text-rose-300 bg-rose-500/10 px-6 py-4 rounded-2xl border border-rose-500/20 shadow-xl shadow-rose-500/10 transition-all hover:scale-[1.03] hover:bg-rose-500/20 hover:border-rose-500/40 cursor-pointer"
               >
-                <span className="text-xs font-bold bg-rose-500 text-white px-1.5 py-0.5 rounded">EVENT</span>
-                <p className="text-sm font-bold tracking-tight truncate max-w-[200px] sm:max-w-xs">
-                  {nearestDday.title} <span className="ml-1 text-rose-400">{getDdayCount(nearestDday.targetDate)}</span>
-                </p>
+                <span className="text-sm font-black bg-rose-500 text-white px-2 py-1 rounded-lg">D-DAY</span>
+                <div className="text-left overflow-hidden">
+                  <p className="text-base font-bold tracking-tight truncate">
+                    {nearestDday.title}
+                  </p>
+                  <p className="text-lg font-black text-rose-400 leading-none mt-1">{getDdayCount(nearestDday.targetDate)}</p>
+                </div>
               </a>
             )}
           </div>
