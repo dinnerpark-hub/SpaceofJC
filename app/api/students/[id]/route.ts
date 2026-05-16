@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 /* ===================================
    학생 정보 삭제 API Route (DELETE)
    =================================== */
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
     await sql`DELETE FROM students WHERE id = ${id}`;
     return NextResponse.json({ message: "삭제되었습니다." });
   } catch (error) {
