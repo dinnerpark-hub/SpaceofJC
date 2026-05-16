@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
    =================================== */
 
 interface Notice {
+  id: string;
   title: string;
 }
 
@@ -86,14 +87,17 @@ export default function Hero() {
             2026학년도 교실 운영 중
           </div>
 
-          {/* 최신 공지사항 프리뷰 (반짝임 효과) */}
+          {/* 최신 공지사항 프리뷰 (클릭 시 바로가기) */}
           {latestNotice && (
-            <div className="animate-pulse flex items-center gap-2 text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 shadow-lg shadow-indigo-500/5">
+            <a
+              href={`#notice-${latestNotice.id}`}
+              className="animate-pulse flex items-center gap-2 text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 shadow-lg shadow-indigo-500/5 transition-all hover:scale-[1.02] hover:bg-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
+            >
               <span className="text-xs font-bold bg-indigo-500 text-white px-1.5 py-0.5 rounded animate-bounce">NEW</span>
               <p className="text-sm font-bold tracking-tight truncate max-w-[250px] sm:max-w-md">
                 {latestNotice.title}
               </p>
-            </div>
+            </a>
           )}
         </div>
       </div>

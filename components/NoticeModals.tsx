@@ -45,10 +45,32 @@ export default function NoticeModals() {
   };
 
   useEffect(() => {
-    const handleHashChange = () => {
-      if (window.location.hash === "#notices") {
+    const handleHashChange = async () => {
+      const hash = window.location.hash;
+      if (hash === "#notices") {
         setIsOpen(true);
+        setIsWriteMode(false);
+        setSelectedNotice(null);
         fetchNotices();
+      } else if (hash.startsWith("#notice-")) {
+        const id = hash.replace("#notice-", "");
+        setIsOpen(true);
+        setIsWriteMode(false);
+        
+        // 목록이 비어있으면 먼저 가져옴
+        let currentNotices = notices;
+        if (currentNotices.length === 0) {
+          const response = await fetch("/api/notices");
+          if (response.ok) {
+            currentNotices = await response.json();
+            setNotices(currentNotices);
+          }
+        }
+        
+        const target = currentNotices.find(n => n.id === id);
+        if (target) {
+          setSelectedNotice(target);
+        }
       } else {
         setIsOpen(false);
       }
@@ -58,7 +80,7 @@ export default function NoticeModals() {
     handleHashChange();
     
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  }, [notices]); // notices 의존성 추가하여 데이터 로드 후 상세 매칭 보장
 
   const closeModal = () => {
     setIsOpen(false);
