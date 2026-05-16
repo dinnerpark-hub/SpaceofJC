@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
-import StudentEntry from "@/components/StudentEntry";
+import StudentModals from "@/components/StudentModals";
 import Footer from "@/components/Footer";
 
 /* ===================================
@@ -20,9 +20,6 @@ export default function Home() {
         {/* 히어로 섹션 */}
         <Hero />
 
-        {/* 학생 정보 입력 및 명단 섹션 */}
-        <StudentEntry />
-
         {/* ────────────────────────────────────────
             여기에 새로운 섹션 컴포넌트를 추가하세요
             예시:
@@ -32,6 +29,9 @@ export default function Home() {
             <Contact />
            ──────────────────────────────────────── */}
       </main>
+
+      {/* 학생 등록 및 목록 모달 (팝업) */}
+      <StudentModals />
 
       {/* 하단 푸터 */}
       <Footer />

@@ -12,7 +12,7 @@ import Link from "next/link";
 // 네비게이션 링크 목록 (새 메뉴를 추가하려면 여기에 항목을 추가하세요)
 const navLinks = [
   { href: "/", label: "홈" },
-  { href: "#student-list", label: "학생목록" },
+  { href: "#students", label: "학생목록" },
   { href: "#", label: "공지사항" },
   { href: "#", label: "학습자료" },
 ];
