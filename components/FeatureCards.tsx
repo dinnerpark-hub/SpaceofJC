@@ -53,12 +53,12 @@ export default function FeatureCards() {
         <p className="mt-2 text-sm text-slate-400">카드를 눌러서 각 기능을 이용해 보세요.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="flex flex-wrap justify-center gap-6">
         {features.map((f) => (
           <a
             key={f.hash}
             href={f.hash}
-            className={`group relative flex flex-col items-center gap-3 rounded-2xl border border-white/5 bg-gradient-to-br ${f.gradient} p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.borderHover}`}
+            className={`group relative flex w-full flex-col items-center gap-3 rounded-2xl border border-white/5 bg-gradient-to-br ${f.gradient} p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.borderHover} sm:w-48`}
           >
             <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${f.iconBg} text-2xl transition-transform duration-300 group-hover:scale-110`}>
               {f.icon}
