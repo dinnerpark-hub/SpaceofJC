@@ -3,10 +3,9 @@
 import { useState, useEffect } from "react";
 
 /* ===================================
-   StudentEntry 컴포넌트 (개선 버전)
-   - [특징 1] '시작하기' 클릭 시 모달로 입력창 노출
-   - [특징 2] 학년별 필터링 기능 제공 (학생 목록)
-   - [특징 3] LocalStorage 연동 및 정렬
+   StudentEntry 컴포넌트 (DB 연동 버전)
+   - Neon Postgres DB와 API를 통해 통신합니다.
+   - 학년별 필터링 기능 유지
    =================================== */
 
 interface Student {
@@ -15,13 +14,14 @@ interface Student {
   classNum: string;
   number: string;
   name: string;
-  timestamp: number;
+  timestamp: string;
 }
 
 export default function StudentEntry() {
   const [students, setStudents] = useState<Student[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGrade, setSelectedGrade] = useState<string>("전체");
+  const [isLoading, setIsLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     grade: "",
@@ -30,14 +30,25 @@ export default function StudentEntry() {
     name: "",
   });
 
-  // 초기 데이터 로드 및 해시 감지
-  useEffect(() => {
-    const saved = localStorage.getItem("students");
-    if (saved) {
-      setStudents(JSON.parse(saved));
+  // API로부터 데이터 로드
+  const fetchStudents = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/students");
+      if (response.ok) {
+        const data = await response.json();
+        setStudents(data);
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    // URL 해시가 #register이면 모달 열기 (Hero 버튼 연동)
+  useEffect(() => {
+    fetchStudents();
+
     const handleHashChange = () => {
       if (window.location.hash === "#register") {
         setIsModalOpen(true);
@@ -45,68 +56,77 @@ export default function StudentEntry() {
     };
     
     window.addEventListener("hashchange", handleHashChange);
-    handleHashChange(); // 초기 실행
+    handleHashChange();
     
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  // 모달 닫을 때 해시 제거
   const closeModal = () => {
     setIsModalOpen(false);
     window.history.replaceState(null, "", window.location.pathname);
   };
 
-  // 데이터 저장 및 정렬
-  const handleSubmit = (e: React.FormEvent) => {
+  // DB에 데이터 저장
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.grade || !formData.classNum || !formData.number || !formData.name) return;
 
-    const newStudent: Student = {
-      id: crypto.randomUUID(),
-      ...formData,
-      timestamp: Date.now(),
-    };
+    try {
+      const response = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
-    const updatedStudents = [...students, newStudent].sort((a, b) => {
-      if (a.grade !== b.grade) return parseInt(a.grade) - parseInt(b.grade);
-      if (a.classNum !== b.classNum) return parseInt(a.classNum) - parseInt(b.classNum);
-      return parseInt(a.number) - parseInt(b.number);
-    });
-
-    setStudents(updatedStudents);
-    localStorage.setItem("students", JSON.stringify(updatedStudents));
-    setFormData({ grade: "", classNum: "", number: "", name: "" });
-    closeModal();
-    alert("정보가 저장되었습니다!");
-  };
-
-  const deleteStudent = (id: string) => {
-    if (confirm("삭제하시겠습니까?")) {
-      const updated = students.filter((s) => s.id !== id);
-      setStudents(updated);
-      localStorage.setItem("students", JSON.stringify(updated));
+      if (response.ok) {
+        setFormData({ grade: "", classNum: "", number: "", name: "" });
+        closeModal();
+        alert("정보가 데이터베이스에 저장되었습니다!");
+        fetchStudents(); // 목록 새로고침
+      } else {
+        const errorData = await response.json();
+        alert(`저장 실패: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error("Submit error:", error);
+      alert("서버 통신 중 오류가 발생했습니다.");
     }
   };
 
-  // 필터링된 학생 목록
+  // DB에서 데이터 삭제
+  const deleteStudent = async (id: string) => {
+    if (!confirm("삭제하시겠습니까? (DB에서 영구 삭제됩니다)")) return;
+
+    try {
+      const response = await fetch(`/api/students/${id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        fetchStudents(); // 목록 새로고침
+      } else {
+        alert("삭제에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+    }
+  };
+
   const filteredStudents = selectedGrade === "전체" 
     ? students 
     : students.filter(s => s.grade === selectedGrade);
 
-  // 학년 종류 추출
   const grades = ["전체", ...Array.from(new Set(students.map(s => s.grade))).sort()];
 
   return (
     <section id="student-list" className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
       
-      {/* ── 상단 영역: 타이틀 및 필터 ── */}
       <div className="mb-10 flex flex-col items-center justify-between gap-6 md:flex-row">
         <div>
           <h2 className="text-3xl font-bold text-white">학생 목록 📋</h2>
-          <p className="mt-2 text-slate-400">등록된 학생들을 학년별로 확인할 수 있습니다.</p>
+          <p className="mt-2 text-slate-400">데이터베이스에 저장된 실시간 명단입니다.</p>
         </div>
 
-        {/* 학년 필터 버튼 */}
         <div className="flex flex-wrap gap-2">
           {grades.map(grade => (
             <button
@@ -124,10 +144,13 @@ export default function StudentEntry() {
         </div>
       </div>
 
-      {/* ── 목록 표시 영역 ── */}
       <div className="glass overflow-hidden rounded-3xl shadow-2xl">
         <div className="min-h-[300px] overflow-x-auto">
-          {filteredStudents.length === 0 ? (
+          {isLoading ? (
+            <div className="flex min-h-[300px] items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+            </div>
+          ) : filteredStudents.length === 0 ? (
             <div className="flex min-h-[300px] flex-col items-center justify-center text-slate-500">
               <span className="mb-2 text-4xl">🔍</span>
               <p>{selectedGrade === "전체" ? "등록된 학생이 없습니다." : `${selectedGrade}학년 학생이 없습니다.`}</p>
@@ -168,16 +191,9 @@ export default function StudentEntry() {
         </div>
       </div>
 
-      {/* ── 정보 입력 모달 (isModalOpen 시 노출) ── */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
-          {/* 배경 오버레이 */}
-          <div 
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-            onClick={closeModal}
-          />
-          
-          {/* 모달 콘텐츠 */}
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={closeModal} />
           <div className="glass relative w-full max-w-md animate-fade-in-up rounded-3xl p-8 shadow-2xl border border-white/10">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-white">학생 정보 등록 🎒</h2>
@@ -236,7 +252,7 @@ export default function StudentEntry() {
                   type="submit"
                   className="w-full rounded-xl bg-indigo-500 py-4 font-bold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-400 active:scale-[0.98]"
                 >
-                  등록 완료하기
+                  데이터베이스에 저장
                 </button>
                 <button
                   type="button"
