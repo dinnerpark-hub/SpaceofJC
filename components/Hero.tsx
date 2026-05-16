@@ -40,9 +40,9 @@ export default function Hero() {
 
         {/* CTA 버튼 그룹 */}
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          {/* 주요 CTA 버튼 (학생 정보 입력 섹션으로 이동) */}
+          {/* 주요 CTA 버튼 (학생 정보 입력 모달 오픈) */}
           <a
-            href="#student-entry"
+            href="#register"
             className="group relative inline-flex items-center gap-2 overflow-hidden rounded-xl bg-indigo-500 px-8 py-4 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all duration-300 hover:bg-indigo-400 hover:shadow-indigo-500/40 hover:-translate-y-1 active:translate-y-0"
           >
             <span className="absolute inset-0 -z-10 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
