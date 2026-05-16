@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 /* ===================================
    Hero 컴포넌트
    - 메인 환영 문구 + CTA 버튼
-   - 최신 공지사항 실시간 노출 (반짝임 효과)
+   - 최신 공지사항 및 가장 가까운 D-Day 노출
    =================================== */
 
 interface Notice {
@@ -13,10 +13,18 @@ interface Notice {
   title: string;
 }
 
+interface Dday {
+  id: string;
+  title: string;
+  targetDate: string;
+}
+
 export default function Hero() {
   const [latestNotice, setLatestNotice] = useState<Notice | null>(null);
+  const [nearestDday, setNearestDday] = useState<Dday | null>(null);
 
   useEffect(() => {
+    // 최신 공지사항 가져오기
     const fetchLatestNotice = async () => {
       try {
         const response = await fetch("/api/notices?latest=true");
@@ -28,8 +36,41 @@ export default function Hero() {
         console.error("Notice fetch error:", error);
       }
     };
+
+    // 가장 가까운 D-Day 가져오기
+    const fetchNearestDday = async () => {
+      try {
+        const response = await fetch("/api/dday");
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.length > 0) {
+            // 날짜가 지나지 않은 것 중 가장 가까운 것 찾기
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            const futureEvents = data.filter((ev: any) => new Date(ev.targetDate) >= now);
+            if (futureEvents.length > 0) {
+              setNearestDday(futureEvents[0]); // API가 이미 ASC 정렬해서 보냄
+            }
+          }
+        }
+      } catch (error) {
+        console.error("D-Day fetch error:", error);
+      }
+    };
+
     fetchLatestNotice();
+    fetchNearestDday();
   }, []);
+
+  const getDdayCount = (dateStr: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(dateStr);
+    target.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return "D-Day!";
+    return `D-${diff}`;
+  };
 
   return (
     <section className="relative isolate flex min-h-[70vh] items-start justify-center overflow-visible px-4 pt-20 pb-24 sm:px-6 sm:pt-32 sm:pb-32 lg:pt-40 lg:pb-40">
@@ -77,8 +118,8 @@ export default function Hero() {
           </a>
         </div>
 
-        {/* 뱃지 및 최신 공지사항 */}
-        <div className="mt-12 flex flex-col items-center gap-4">
+        {/* 뱃지 및 최신 정보 */}
+        <div className="mt-12 flex flex-col items-center gap-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1.5 text-xs font-medium text-slate-400">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
@@ -87,18 +128,33 @@ export default function Hero() {
             2026학년도 교실 운영 중
           </div>
 
-          {/* 최신 공지사항 프리뷰 (클릭 시 바로가기) */}
-          {latestNotice && (
-            <a
-              href={`#notice-${latestNotice.id}`}
-              className="animate-pulse flex items-center gap-2 text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 shadow-lg shadow-indigo-500/5 transition-all hover:scale-[1.02] hover:bg-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
-            >
-              <span className="text-xs font-bold bg-indigo-500 text-white px-1.5 py-0.5 rounded animate-bounce">NEW</span>
-              <p className="text-sm font-bold tracking-tight truncate max-w-[250px] sm:max-w-md">
-                {latestNotice.title}
-              </p>
-            </a>
-          )}
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            {/* 최신 공지사항 프리뷰 */}
+            {latestNotice && (
+              <a
+                href={`#notice-${latestNotice.id}`}
+                className="animate-pulse flex items-center gap-2 text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-lg border border-indigo-500/20 shadow-lg shadow-indigo-500/5 transition-all hover:scale-[1.02] hover:bg-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
+              >
+                <span className="text-xs font-bold bg-indigo-500 text-white px-1.5 py-0.5 rounded animate-bounce">NEW</span>
+                <p className="text-sm font-bold tracking-tight truncate max-w-[200px] sm:max-w-xs">
+                  {latestNotice.title}
+                </p>
+              </a>
+            )}
+
+            {/* 가장 가까운 D-Day 프리뷰 */}
+            {nearestDday && (
+              <a
+                href="#dday"
+                className="flex items-center gap-2 text-rose-300 bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20 shadow-lg shadow-rose-500/5 transition-all hover:scale-[1.02] hover:bg-rose-500/20 hover:border-rose-500/40 cursor-pointer"
+              >
+                <span className="text-xs font-bold bg-rose-500 text-white px-1.5 py-0.5 rounded">EVENT</span>
+                <p className="text-sm font-bold tracking-tight truncate max-w-[200px] sm:max-w-xs">
+                  {nearestDday.title} <span className="ml-1 text-rose-400">{getDdayCount(nearestDday.targetDate)}</span>
+                </p>
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </section>
