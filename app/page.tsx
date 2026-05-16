@@ -1,43 +1,40 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import FeatureCards from "@/components/FeatureCards";
 import StudentModals from "@/components/StudentModals";
 import NoticeModals from "@/components/NoticeModals";
+import DdayModal from "@/components/DdayModal";
+import TimetableModal from "@/components/TimetableModal";
+import QuestionModal from "@/components/QuestionModal";
+import GalleryModal from "@/components/GalleryModal";
+import PollModal from "@/components/PollModal";
 import Footer from "@/components/Footer";
 
 /* ===================================
    메인 페이지 (Home)
-   - 각 섹션은 별도 컴포넌트로 분리되어 있습니다.
-   - 새로운 섹션을 추가하려면 컴포넌트를 만들고 아래에 배치하세요.
+   - Hero → FeatureCards → Footer
+   - 각 모달은 전역적으로 해시 변경을 감지합니다.
    =================================== */
 
 export default function Home() {
   return (
     <>
-      {/* 상단 헤더 & 네비게이션 */}
       <Header />
 
-      {/* 메인 콘텐츠 영역 */}
       <main className="flex-1">
-        {/* 히어로 섹션 */}
         <Hero />
-
-        {/* ────────────────────────────────────────
-            여기에 새로운 섹션 컴포넌트를 추가하세요
-            예시:
-            <Features />
-            <Schedule />
-            <Gallery />
-            <Contact />
-           ──────────────────────────────────────── */}
+        <FeatureCards />
       </main>
 
-      {/* 학생 등록 및 목록 모달 (팝업) */}
+      {/* 전역 모달들 (해시 기반 팝업) */}
       <StudentModals />
-
-      {/* 공지사항 모달 (팝업) */}
       <NoticeModals />
+      <DdayModal />
+      <TimetableModal />
+      <QuestionModal />
+      <GalleryModal />
+      <PollModal />
 
-      {/* 하단 푸터 */}
       <Footer />
     </>
   );
