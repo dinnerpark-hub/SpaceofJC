@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Hero from "@/components/Hero";
+import StudentEntry from "@/components/StudentEntry";
 import Footer from "@/components/Footer";
 
 /* ===================================
@@ -18,6 +19,9 @@ export default function Home() {
       <main className="flex-1">
         {/* 히어로 섹션 */}
         <Hero />
+
+        {/* 학생 정보 입력 및 명단 섹션 */}
+        <StudentEntry />
 
         {/* ────────────────────────────────────────
             여기에 새로운 섹션 컴포넌트를 추가하세요
