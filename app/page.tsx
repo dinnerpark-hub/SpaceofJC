@@ -6,6 +6,7 @@ import DdayModal from "@/components/DdayModal";
 import QuestionModal from "@/components/QuestionModal";
 import GalleryModal from "@/components/GalleryModal";
 import PollModal from "@/components/PollModal";
+import ArcadeModal from "@/components/ArcadeModal";
 import Footer from "@/components/Footer";
 
 /* ===================================
@@ -30,6 +31,7 @@ export default function Home() {
       <QuestionModal />
       <GalleryModal />
       <PollModal />
+      <ArcadeModal />
 
       <Footer />
     </>

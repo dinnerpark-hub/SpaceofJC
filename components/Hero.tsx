@@ -57,6 +57,15 @@ const features = [
     borderHover: "hover:border-amber-500/30",
     iconBg: "bg-amber-500/20",
   },
+  {
+    hash: "#arcade",
+    icon: "🕹️",
+    title: "오락실",
+    desc: "2048 & 카드 뒤집기",
+    gradient: "from-cyan-500/20 to-indigo-500/20",
+    borderHover: "hover:border-cyan-500/30",
+    iconBg: "bg-cyan-500/20",
+  },
 ];
 
 export default function Hero() {
@@ -207,7 +216,7 @@ export default function Hero() {
               <a
                 key={f.hash}
                 href={f.hash}
-                className={`group relative flex w-full flex-col items-center gap-4 rounded-3xl border border-white/5 bg-gradient-to-br ${f.gradient} p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.borderHover} sm:w-56`}
+                className={`group relative flex w-full flex-col items-center gap-4 rounded-3xl border border-white/5 bg-gradient-to-br ${f.gradient} p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.borderHover} sm:w-48`}
               >
                 <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${f.iconBg} text-3xl transition-transform duration-300 group-hover:scale-110`}>
                   {f.icon}
