@@ -165,10 +165,10 @@ export default function Hero() {
             {latestNotice && (
               <a
                 href={`#notice-${latestNotice.id}`}
-                className="flex-1 animate-pulse flex items-center gap-4 text-indigo-300 bg-indigo-500/10 px-8 py-6 rounded-3xl border border-indigo-500/20 shadow-2xl shadow-indigo-500/20 transition-all hover:scale-[1.03] hover:bg-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
+                className="flex-1 w-full animate-pulse flex flex-col sm:flex-row items-start sm:items-center gap-4 text-indigo-300 bg-indigo-500/10 p-6 sm:px-8 sm:py-6 rounded-3xl border border-indigo-500/20 shadow-2xl shadow-indigo-500/20 transition-all hover:scale-[1.03] hover:bg-indigo-500/20 hover:border-indigo-500/40 cursor-pointer"
               >
-                <span className="text-sm font-black bg-indigo-500 text-white px-2.5 py-1 rounded-xl animate-bounce">NOTICE</span>
-                <div className="text-left overflow-hidden">
+                <span className="text-sm font-black bg-indigo-500 text-white px-3.5 py-1.5 rounded-xl animate-bounce shrink-0">NOTICE</span>
+                <div className="text-left overflow-hidden w-full">
                   <p className="text-lg font-bold tracking-tight truncate">
                     {latestNotice.title}
                   </p>
@@ -181,10 +181,10 @@ export default function Hero() {
             {nearestDday && (
               <a
                 href="#dday"
-                className="flex-1 flex items-center gap-4 text-rose-300 bg-rose-500/10 px-8 py-6 rounded-3xl border border-rose-500/20 shadow-2xl shadow-rose-500/20 transition-all hover:scale-[1.03] hover:bg-rose-500/20 hover:border-rose-500/40 cursor-pointer"
+                className="flex-1 w-full flex flex-col sm:flex-row items-start sm:items-center gap-4 text-rose-300 bg-rose-500/10 p-6 sm:px-8 sm:py-6 rounded-3xl border border-rose-500/20 shadow-2xl shadow-rose-500/20 transition-all hover:scale-[1.03] hover:bg-rose-500/20 hover:border-rose-500/40 cursor-pointer"
               >
-                <span className="text-sm font-black bg-rose-500 text-white px-2.5 py-1 rounded-xl">D-DAY</span>
-                <div className="text-left overflow-hidden">
+                <span className="text-sm font-black bg-rose-500 text-white px-3.5 py-1.5 rounded-xl shrink-0">D-DAY</span>
+                <div className="text-left overflow-hidden w-full">
                   <p className="text-lg font-bold tracking-tight truncate">
                     {nearestDday.title}
                   </p>
@@ -207,13 +207,13 @@ export default function Hero() {
               <a
                 key={f.hash}
                 href={f.hash}
-                className={`group relative flex w-full flex-col items-center gap-3 rounded-2xl border border-white/5 bg-gradient-to-br ${f.gradient} p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.borderHover} sm:w-48`}
+                className={`group relative flex w-full flex-col items-center gap-4 rounded-3xl border border-white/5 bg-gradient-to-br ${f.gradient} p-6 text-center transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${f.borderHover} sm:w-56`}
               >
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${f.iconBg} text-2xl transition-transform duration-300 group-hover:scale-110`}>
+                <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${f.iconBg} text-3xl transition-transform duration-300 group-hover:scale-110`}>
                   {f.icon}
                 </div>
-                <h3 className="text-sm font-bold text-white">{f.title}</h3>
-                <p className="text-[11px] text-slate-400 leading-tight">{f.desc}</p>
+                <h3 className="text-base font-bold text-white mt-1">{f.title}</h3>
+                <p className="text-xs text-slate-400 leading-normal">{f.desc}</p>
               </a>
             ))}
           </div>

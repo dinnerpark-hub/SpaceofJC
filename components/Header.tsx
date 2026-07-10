@@ -24,12 +24,12 @@ export default function Header() {
     <header className="glass sticky top-0 z-50">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         {/* ── 로고 ── */}
-        <Link href="/" className="flex items-center gap-2 group">
+        <Link href="/" className="flex items-center gap-3 group">
           {/* 로고 아이콘 (이모지 → 나중에 이미지로 교체 가능) */}
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/20 text-xl transition-transform duration-300 group-hover:scale-110">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-500/20 text-2xl transition-transform duration-300 group-hover:scale-110 shrink-0">
             🚀
           </span>
-          <span className="text-lg font-bold tracking-tight gradient-text sm:text-xl">
+          <span className="text-xl font-bold tracking-tight gradient-text sm:text-2xl">
             정찬샘의 스페이스
           </span>
         </Link>
