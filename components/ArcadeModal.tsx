@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 /* =======================================================
    ArcadeModal 컴포넌트 (오락실)
-   - 2048 게임 및 카드 뒤집기(메모리 게임) 수록
+   - 2048 게임: 타일 이동 슬라이드 애니메이션 적용
+   - 카드 뒤집기(메모리 게임): 3D 카드 뒤집기 애니메이션 개선
    - 해시(#arcade) 감지로 팝업 작동
    ======================================================= */
 
@@ -15,6 +16,16 @@ interface Card {
   isMatched: boolean;
 }
 
+interface Tile {
+  id: string;
+  value: number;
+  row: number;
+  col: number;
+  isNew?: boolean;
+  isMerged?: boolean;
+  isMergedTo?: string; // 이 타일이 병합되어 들어간 대상 타일의 ID
+}
+
 const EMOJIS = ["🍎", "🍌", "🍒", "🍇", "🍉", "🍓", "🥑", "🍍"];
 
 export default function ArcadeModal() {
@@ -22,10 +33,11 @@ export default function ArcadeModal() {
   const [activeGame, setActiveGame] = useState<"menu" | "2048" | "cards">("menu");
 
   // ── [2048 State] ──
-  const [board, setBoard] = useState<number[][]>(Array(4).fill(null).map(() => Array(4).fill(0)));
+  const [tiles, setTiles] = useState<Tile[]>([]);
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [isGameOver2048, setIsGameOver2048] = useState(false);
+  const tileIdCounter = useRef(0);
 
   // ── [Card Game State] ──
   const [cards, setCards] = useState<Card[]>([]);
@@ -56,49 +68,40 @@ export default function ArcadeModal() {
   };
 
   // ── [2048 Logic] ──
-  const addRandomTile = useCallback((currentBoard: number[][]) => {
-    const emptyCells: { r: number; c: number }[] = [];
+  const addTile = useCallback((boardTiles: Tile[]) => {
+    const emptyCoords = [];
     for (let r = 0; r < 4; r++) {
       for (let c = 0; c < 4; c++) {
-        if (currentBoard[r][c] === 0) emptyCells.push({ r, c });
+        // 이미 활성 타일(병합 소멸 예정이 아닌 타일)이 없는 좌표를 수집
+        if (!boardTiles.some(t => t.row === r && t.col === c && !t.isMergedTo)) {
+          emptyCoords.push({ r, c });
+        }
       }
     }
-    if (emptyCells.length > 0) {
-      const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-      currentBoard[r][c] = Math.random() < 0.9 ? 2 : 4;
+    if (emptyCoords.length > 0) {
+      const { r, c } = emptyCoords[Math.floor(Math.random() * emptyCoords.length)];
+      const newTile: Tile = {
+        id: `tile-${tileIdCounter.current++}-${Date.now()}`,
+        value: Math.random() < 0.9 ? 2 : 4,
+        row: r,
+        col: c,
+        isNew: true
+      };
+      return [...boardTiles, newTile];
     }
+    return boardTiles;
   }, []);
 
   const init2048 = useCallback(() => {
-    const newBoard = Array(4).fill(null).map(() => Array(4).fill(0));
-    addRandomTile(newBoard);
-    addRandomTile(newBoard);
-    setBoard(newBoard);
+    let initialTiles: Tile[] = [];
+    initialTiles = addTile(initialTiles);
+    initialTiles = addTile(initialTiles);
+    setTiles(initialTiles);
     setScore(0);
     setIsGameOver2048(false);
     const savedBest = localStorage.getItem("bestScore2048");
     if (savedBest) setBestScore(parseInt(savedBest));
-  }, [addRandomTile]);
-
-  // 한 행 밀기 로직
-  const slide = (row: number[]) => {
-    let arr = row.filter((val) => val !== 0);
-    let missing = 4 - arr.length;
-    let zeros = Array(missing).fill(0);
-    return arr.concat(zeros);
-  };
-
-  // 한 행 합치기 로직
-  const merge = (row: number[], addScore: (val: number) => void) => {
-    for (let i = 0; i < 3; i++) {
-      if (row[i] !== 0 && row[i] === row[i + 1]) {
-        row[i] = row[i] * 2;
-        addScore(row[i]);
-        row[i + 1] = 0;
-      }
-    }
-    return row;
-  };
+  }, [addTile]);
 
   // 게임 오버 체크
   const checkGameOver = (currentBoard: number[][]) => {
@@ -115,56 +118,111 @@ export default function ArcadeModal() {
   const move2048 = useCallback((direction: "LEFT" | "RIGHT" | "UP" | "DOWN") => {
     if (isGameOver2048) return;
 
-    setBoard((prevBoard) => {
-      let nextBoard = prevBoard.map((row) => [...row]);
-      let localScoreAddition = 0;
+    let moved = false;
+    let scoreGain = 0;
 
-      const addLocalScore = (val: number) => {
-        localScoreAddition += val;
-      };
+    const vector = {
+      x: direction === "LEFT" ? -1 : direction === "RIGHT" ? 1 : 0,
+      y: direction === "UP" ? -1 : direction === "DOWN" ? 1 : 0
+    };
 
-      // 회전/변환 헬퍼
-      const rotateLeft = (matrix: number[][]) => {
-        return matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex])).reverse();
-      };
+    setTiles((prevTiles) => {
+      // 4x4 가상 그리드 구성
+      const grid: (Tile | null)[][] = Array(4).fill(null).map(() => Array(4).fill(null));
+      const activeTiles = prevTiles.filter(t => !t.isMergedTo);
+      activeTiles.forEach(t => {
+        grid[t.row][t.col] = t;
+      });
 
-      let rotations = 0;
-      if (direction === "UP") rotations = 1;
-      else if (direction === "RIGHT") rotations = 2;
-      else if (direction === "DOWN") rotations = 3;
+      const mergedIds = new Set<string>();
+      const nextTiles: Tile[] = [];
 
-      for (let i = 0; i < rotations; i++) {
-        nextBoard = rotateLeft(nextBoard);
-      }
+      const rows = [0, 1, 2, 3];
+      const cols = [0, 1, 2, 3];
+      if (direction === "RIGHT") cols.reverse();
+      if (direction === "DOWN") rows.reverse();
 
-      // 왼쪽 슬라이드 + 합치기
-      for (let r = 0; r < 4; r++) {
-        nextBoard[r] = slide(nextBoard[r]);
-        nextBoard[r] = merge(nextBoard[r], addLocalScore);
-        nextBoard[r] = slide(nextBoard[r]);
-      }
+      const inBounds = (r: number, c: number) => r >= 0 && r < 4 && c >= 0 && c < 4;
+      const nextGrid: (Tile | null)[][] = Array(4).fill(null).map(() => Array(4).fill(null));
 
-      // 원래대로 회전 복구
-      const restoreRotations = (4 - rotations) % 4;
-      for (let i = 0; i < restoreRotations; i++) {
-        nextBoard = rotateLeft(nextBoard);
-      }
+      for (let r of rows) {
+        for (let c of cols) {
+          const tile = grid[r][c];
+          if (!tile) continue;
 
-      // 움직임이 있었는지 체크
-      let boardChanged = false;
-      for (let r = 0; r < 4; r++) {
-        for (let c = 0; c < 4; c++) {
-          if (nextBoard[r][c] !== prevBoard[r][c]) {
-            boardChanged = true;
-            break;
+          let currR = r;
+          let currC = c;
+          let nextR = r + vector.y;
+          let nextC = c + vector.x;
+
+          // 이동할 수 있는 가장 먼 빈 칸 찾기
+          while (inBounds(nextR, nextC) && !nextGrid[nextR][nextC] && !grid[nextR][nextC]) {
+            currR = nextR;
+            currC = nextC;
+            nextR += vector.y;
+            nextC += vector.x;
+          }
+
+          let merged = false;
+          if (inBounds(nextR, nextC)) {
+            const hitTile = nextGrid[nextR][nextC] || grid[nextR][nextC];
+            if (hitTile && hitTile.value === tile.value && !mergedIds.has(hitTile.id) && !hitTile.isMergedTo) {
+              merged = true;
+              mergedIds.add(hitTile.id);
+              scoreGain += tile.value * 2;
+
+              // 현재 이동하는 타일의 위치를 합쳐질 타일 위치로 변경하고 병합 정보 추가
+              const movingTile: Tile = {
+                ...tile,
+                row: nextR,
+                col: nextC,
+                isMergedTo: hitTile.id
+              };
+              nextTiles.push(movingTile);
+
+              // 대상 타일의 값을 2배로 증가하고 병합 연출 클래스 지정
+              const hitIndex = nextTiles.findIndex(t => t.id === hitTile.id);
+              if (hitIndex !== -1) {
+                nextTiles[hitIndex] = {
+                  ...nextTiles[hitIndex],
+                  value: tile.value * 2,
+                  isMerged: true
+                };
+              }
+              moved = true;
+            }
+          }
+
+          if (!merged) {
+            const movedTile: Tile = {
+              ...tile,
+              row: currR,
+              col: currC
+            };
+            nextGrid[currR][currC] = movedTile;
+            nextTiles.push(movedTile);
+            if (currR !== r || currC !== c) {
+              moved = true;
+            }
           }
         }
       }
 
-      if (boardChanged) {
-        addRandomTile(nextBoard);
-        setScore((prev) => {
-          const newScore = prev + localScoreAddition;
+      if (moved) {
+        let withNew = addTile(nextTiles);
+
+        // 신규 타일판 기준으로 게임오버 여부 검사
+        const checkBoard = Array(4).fill(null).map(() => Array(4).fill(0));
+        withNew.filter(t => !t.isMergedTo).forEach(t => {
+          checkBoard[t.row][t.col] = t.value;
+        });
+
+        if (checkGameOver(checkBoard)) {
+          setIsGameOver2048(true);
+        }
+
+        setScore(prev => {
+          const newScore = prev + scoreGain;
           setBestScore((currentBest) => {
             const nextBest = Math.max(currentBest, newScore);
             localStorage.setItem("bestScore2048", nextBest.toString());
@@ -173,14 +231,19 @@ export default function ArcadeModal() {
           return newScore;
         });
 
-        if (checkGameOver(nextBoard)) {
-          setIsGameOver2048(true);
-        }
+        // 150ms(애니메이션 완료 시간) 후 소멸 예정 타일들을 걸러내고 연출 상태 리셋
+        setTimeout(() => {
+          setTiles(current =>
+            current.filter(t => !t.isMergedTo).map(t => ({ ...t, isNew: false, isMerged: false }))
+          );
+        }, 150);
+
+        return withNew;
       }
 
-      return nextBoard;
+      return prevTiles;
     });
-  }, [isGameOver2048, addRandomTile]);
+  }, [isGameOver2048, addTile]);
 
   // 키보드 리스너 등록
   useEffect(() => {
@@ -246,7 +309,6 @@ export default function ArcadeModal() {
             const updated = prev.map((c, i) =>
               i === first || i === second ? { ...c, isMatched: true } : c
             );
-            // 전체 매칭 완료 체크
             if (updated.every((c) => c.isMatched)) {
               setIsWonCards(true);
             }
@@ -365,28 +427,42 @@ export default function ArcadeModal() {
               </div>
 
               {/* 보드 */}
-              <div className="relative bg-slate-900 p-4 rounded-3xl border border-white/10 shadow-2xl w-full max-w-[340px] aspect-square flex flex-col justify-between">
-                {Array(4).fill(null).map((_, r) => (
-                  <div key={r} className="flex justify-between w-full h-[22%]">
-                    {Array(4).fill(null).map((_, c) => {
-                      const value = board[r][c];
-                      return (
+              <div className="relative bg-slate-900 p-4 rounded-3xl border border-white/10 shadow-2xl w-full max-w-[340px] aspect-square">
+                {/* 1. 배경 그리드 (16개 빈 셀) */}
+                <div className="absolute inset-4">
+                  {Array(4).fill(null).map((_, r) => (
+                    <div key={r} className="flex justify-between w-full h-[22%] mb-[4%] last:mb-0">
+                      {Array(4).fill(null).map((_, c) => (
                         <div
                           key={c}
-                          className={`w-[22%] h-full rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-100 ${
-                            value === 0 ? "bg-slate-800/40 border border-white/5 text-transparent" : getTileBg(value)
-                          }`}
-                        >
-                          {value !== 0 && value}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                          className="w-[22%] h-full rounded-xl bg-slate-800/40 border border-white/5"
+                        />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+
+                {/* 2. 실제 움직이는 타일 레이어 */}
+                <div className="absolute inset-4">
+                  {tiles.map((tile) => {
+                    return (
+                      <div
+                        key={tile.id}
+                        className={`absolute w-[22%] h-[22%] rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-150 ${getTileBg(tile.value)} ${tile.isNew ? "animate-pop" : ""} ${tile.isMerged ? "scale-110" : ""}`}
+                        style={{
+                          left: `${tile.col * 26}%`,
+                          top: `${tile.row * 26}%`,
+                        }}
+                      >
+                        {tile.value}
+                      </div>
+                    );
+                  })}
+                </div>
 
                 {/* 게임오버 레이어 */}
                 {isGameOver2048 && (
-                  <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                  <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in z-20">
                     <span className="text-4xl mb-2">💀</span>
                     <h3 className="text-xl font-black text-white mb-1">게임 오버!</h3>
                     <p className="text-sm text-slate-400 mb-6">아쉽게도 합칠 수 있는 블록이 없습니다.</p>
@@ -402,7 +478,7 @@ export default function ArcadeModal() {
 
               {/* 조작 설명 */}
               <p className="mt-4 text-[11px] text-slate-500 text-center">
-                키보드 방향키(↑ ↓ ← →)를 누르면 블록들이 이동합니다.
+                키보드 방향키(↑ ↓ ← →)를 누르면 블록들이 부드럽게 이동합니다.
               </p>
 
               {/* 모바일 화면용 가상 조이패드 */}
@@ -439,7 +515,7 @@ export default function ArcadeModal() {
                     <button
                       key={card.id}
                       onClick={() => handleCardClick(index)}
-                      className={`relative w-full h-full rounded-2xl transition-all duration-300 perspective-1000 ${
+                      className={`relative w-full h-full aspect-square perspective-1000 ${
                         card.isMatched
                           ? "opacity-50 cursor-default scale-95"
                           : "cursor-pointer active:scale-95"
@@ -452,16 +528,12 @@ export default function ArcadeModal() {
                           : "border-white/10 bg-gradient-to-br from-slate-800 to-slate-900"
                       }`}>
                         {/* 앞면 (뒤집혔을 때 혹은 매칭 시) */}
-                        <div className={`absolute inset-0 flex items-center justify-center text-3xl backface-hidden rotate-y-180 ${
-                          isShown ? "block" : "hidden"
-                        }`}>
+                        <div className="absolute inset-0 flex items-center justify-center text-3xl backface-hidden rotate-y-180 bg-emerald-500/10 rounded-2xl">
                           {card.emoji}
                         </div>
 
                         {/* 뒷면 (초기 상태) */}
-                        <div className={`absolute inset-0 flex items-center justify-center text-slate-500 font-black text-xl backface-hidden ${
-                          isShown ? "hidden" : "block"
-                        }`}>
+                        <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-black text-xl backface-hidden bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl">
                           ❓
                         </div>
                       </div>
@@ -471,7 +543,7 @@ export default function ArcadeModal() {
 
                 {/* 성공 레이어 */}
                 {isWonCards && (
-                  <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+                  <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in z-20">
                     <span className="text-5xl mb-3 animate-bounce">🎉</span>
                     <h3 className="text-2xl font-black text-white mb-1">성공! 축하합니다!</h3>
                     <p className="text-sm text-slate-400 mb-6">총 {moves}번 만에 모든 카드의 짝을 맞췄습니다.</p>
