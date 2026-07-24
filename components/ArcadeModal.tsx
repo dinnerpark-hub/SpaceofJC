@@ -3,10 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
 /* =======================================================
-   ArcadeModal 컴포넌트 (오락실)
-   - 2048 게임: 타일 이동 슬라이드 애니메이션 적용
-   - 카드 뒤집기(메모리 게임): 3D 카드 뒤집기 애니메이션 개선
-   - 해시(#arcade) 감지로 팝업 작동
+   ArcadeModal 컴포넌트 (정찬T네 오락실)
+   - 2048 게임: 타일 슬라이딩 이동 & 그리드 정렬
+   - 카드 뒤집기: 3D 카드리버스 게임
+   - ⚡ 스피드 암산 왕: 타임어택 4지선다 연산 퀴즈
+   - 🔢 24 만들기: 4개 숫자로 24 수식 완성 퍼즐
+   - 💣 합쳐서 10!: 타일 합 10 팝업 터뜨리기 퍼즐
+   - 🧩 미니 스도쿠: 4x4 초등/미니 스도쿠 퍼즐
    ======================================================= */
 
 interface Card {
@@ -23,30 +26,134 @@ interface Tile {
   col: number;
   isNew?: boolean;
   isMerged?: boolean;
-  isMergedTo?: string; // 이 타일이 병합되어 들어간 대상 타일의 ID
+  isMergedTo?: string;
+}
+
+interface Make10Tile {
+  id: string;
+  val: number;
+  selected: boolean;
 }
 
 const EMOJIS = ["🍎", "🍌", "🍒", "🍇", "🍉", "🍓", "🥑", "🍍"];
 
+// ── [24 만들기 퍼즐 데이터] ──
+const MAKE24_PUZZLES = [
+  { nums: [3, 8, 2, 1], hint: "(3 - 1) × (8 + 2)" },
+  { nums: [2, 3, 4, 6], hint: "(2 + 4 - 3) × 6" },
+  { nums: [1, 2, 3, 4], hint: "(1 + 2 + 3) × 4" },
+  { nums: [4, 4, 4, 6], hint: "(4 - 4) + 4 × 6" },
+  { nums: [2, 4, 8, 8], hint: "(8 - 4) × 8 / 2" },
+  { nums: [5, 6, 7, 8], hint: "(5 + 7) × (8 - 6)" },
+  { nums: [1, 1, 4, 6], hint: "(1 + 1 + 4) × 6" },
+  { nums: [2, 3, 8, 9], hint: "(9 - 3) × (8 - 4)" },
+  { nums: [1, 4, 5, 6], hint: "4 / (1 - 5 / 6)" },
+  { nums: [3, 3, 8, 8], hint: "8 / (3 - 8 / 3)" }
+];
+
+// ── [스도쿠 퍼즐 데이터] ──
+const SUDOKU_PUZZLES = [
+  {
+    solution: [
+      [1, 2, 3, 4],
+      [3, 4, 1, 2],
+      [2, 1, 4, 3],
+      [4, 3, 2, 1]
+    ],
+    initial: [
+      [1, 0, 0, 4],
+      [0, 4, 1, 0],
+      [0, 1, 4, 0],
+      [4, 0, 0, 1]
+    ]
+  },
+  {
+    solution: [
+      [4, 3, 2, 1],
+      [1, 2, 3, 4],
+      [3, 4, 1, 2],
+      [2, 1, 4, 3]
+    ],
+    initial: [
+      [0, 3, 0, 1],
+      [1, 0, 3, 0],
+      [0, 4, 0, 2],
+      [2, 0, 4, 0]
+    ]
+  },
+  {
+    solution: [
+      [2, 4, 1, 3],
+      [1, 3, 2, 4],
+      [4, 2, 3, 1],
+      [3, 1, 4, 2]
+    ],
+    initial: [
+      [2, 0, 0, 3],
+      [0, 3, 2, 0],
+      [0, 2, 3, 0],
+      [3, 0, 0, 2]
+    ]
+  }
+];
+
+type GameType = "menu" | "2048" | "cards" | "speedMath" | "make24" | "make10" | "sudoku";
+
 export default function ArcadeModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeGame, setActiveGame] = useState<"menu" | "2048" | "cards">("menu");
+  const [activeGame, setActiveGame] = useState<GameType>("menu");
 
-  // ── [2048 State] ──
+  // ── [1. 2048 State] ──
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [score, setScore] = useState(0);
   const [bestScore, setBestScore] = useState(0);
   const [isGameOver2048, setIsGameOver2048] = useState(false);
   const tileIdCounter = useRef(0);
 
-  // ── [Card Game State] ──
+  // ── [2. Card Game State] ──
   const [cards, setCards] = useState<Card[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
   const [isWonCards, setIsWonCards] = useState(false);
   const [isCheckingCards, setIsCheckingCards] = useState(false);
 
-  // 모달 제어
+  // ── [3. 스피드 암산 왕 State] ──
+  const [speedScore, setSpeedScore] = useState(0);
+  const [speedBestScore, setSpeedBestScore] = useState(0);
+  const [speedCombo, setSpeedCombo] = useState(0);
+  const [speedTimeLeft, setSpeedTimeLeft] = useState(30);
+  const [speedIsActive, setSpeedIsActive] = useState(false);
+  const [speedIsOver, setSpeedIsOver] = useState(false);
+  const [speedQuestion, setSpeedQuestion] = useState<{ text: string; answer: number; options: number[] } | null>(null);
+  const [speedFeedback, setSpeedFeedback] = useState<string | null>(null);
+
+  // ── [4. 24 만들기 State] ──
+  const [make24PuzzleIndex, setMake24PuzzleIndex] = useState(0);
+  const [make24Used, setMake24Used] = useState<boolean[]>([false, false, false, false]);
+  const [make24Tokens, setMake24Tokens] = useState<string[]>([]);
+  const [make24IsWon, setMake24IsWon] = useState(false);
+  const [make24Score, setMake24Score] = useState(0);
+  const [make24ShowHint, setMake24ShowHint] = useState(false);
+  const [make24Message, setMake24Message] = useState<string | null>(null);
+
+  // ── [5. 합쳐서 10! State] ──
+  const [make10Grid, setMake10Grid] = useState<Make10Tile[]>([]);
+  const [make10Score, setMake10Score] = useState(0);
+  const [make10BestScore, setMake10BestScore] = useState(0);
+  const [make10TimeLeft, setMake10TimeLeft] = useState(60);
+  const [make10IsActive, setMake10IsActive] = useState(false);
+  const [make10IsOver, setMake10IsOver] = useState(false);
+  const [make10Shake, setMake10Shake] = useState(false);
+
+  // ── [6. 미니 스도쿠 State] ──
+  const [sudokuBoard, setSudokuBoard] = useState<number[][]>([]);
+  const [sudokuInitial, setSudokuInitial] = useState<boolean[][]>([]);
+  const [sudokuSelected, setSudokuSelected] = useState<{ r: number; c: number } | null>(null);
+  const [sudokuTimer, setSudokuTimer] = useState(0);
+  const [sudokuIsWon, setSudokuIsWon] = useState(false);
+  const [sudokuIsActive, setSudokuIsActive] = useState(false);
+
+  // 모달 제어 (해시감지)
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash === "#arcade") {
@@ -72,7 +179,6 @@ export default function ArcadeModal() {
     const emptyCoords = [];
     for (let r = 0; r < 4; r++) {
       for (let c = 0; c < 4; c++) {
-        // 이미 활성 타일(병합 소멸 예정이 아닌 타일)이 없는 좌표를 수집
         if (!boardTiles.some(t => t.row === r && t.col === c && !t.isMergedTo)) {
           emptyCoords.push({ r, c });
         }
@@ -103,7 +209,6 @@ export default function ArcadeModal() {
     if (savedBest) setBestScore(parseInt(savedBest));
   }, [addTile]);
 
-  // 게임 오버 체크
   const checkGameOver = (currentBoard: number[][]) => {
     for (let r = 0; r < 4; r++) {
       for (let c = 0; c < 4; c++) {
@@ -127,7 +232,6 @@ export default function ArcadeModal() {
     };
 
     setTiles((prevTiles) => {
-      // 4x4 가상 그리드 구성
       const grid: (Tile | null)[][] = Array(4).fill(null).map(() => Array(4).fill(null));
       const activeTiles = prevTiles.filter(t => !t.isMergedTo);
       activeTiles.forEach(t => {
@@ -155,7 +259,6 @@ export default function ArcadeModal() {
           let nextR = r + vector.y;
           let nextC = c + vector.x;
 
-          // 이동할 수 있는 가장 먼 빈 칸 찾기
           while (inBounds(nextR, nextC) && !nextGrid[nextR][nextC]) {
             currR = nextR;
             currC = nextC;
@@ -171,7 +274,6 @@ export default function ArcadeModal() {
               mergedIds.add(hitTile.id);
               scoreGain += tile.value * 2;
 
-              // 현재 이동하는 타일의 위치를 합쳐질 타일 위치로 변경하고 병합 정보 추가
               const movingTile: Tile = {
                 ...tile,
                 row: nextR,
@@ -180,7 +282,6 @@ export default function ArcadeModal() {
               };
               nextTiles.push(movingTile);
 
-              // 대상 타일의 값을 2배로 증가하고 병합 연출 클래스 지정
               const hitIndex = nextTiles.findIndex(t => t.id === hitTile.id);
               if (hitIndex !== -1) {
                 nextTiles[hitIndex] = {
@@ -211,7 +312,6 @@ export default function ArcadeModal() {
       if (moved) {
         let withNew = addTile(nextTiles);
 
-        // 신규 타일판 기준으로 게임오버 여부 검사
         const checkBoard = Array(4).fill(null).map(() => Array(4).fill(0));
         withNew.filter(t => !t.isMergedTo).forEach(t => {
           checkBoard[t.row][t.col] = t.value;
@@ -231,7 +331,6 @@ export default function ArcadeModal() {
           return newScore;
         });
 
-        // 150ms(애니메이션 완료 시간) 후 소멸 예정 타일들을 걸러내고 연출 상태 리셋
         setTimeout(() => {
           setTiles(current =>
             current.filter(t => !t.isMergedTo).map(t => ({ ...t, isNew: false, isMerged: false }))
@@ -245,12 +344,11 @@ export default function ArcadeModal() {
     });
   }, [isGameOver2048, addTile]);
 
-  // 키보드 리스너 등록
   useEffect(() => {
     if (activeGame !== "2048") return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
-        e.preventDefault(); // 스크롤 방지
+        e.preventDefault();
       }
       switch (e.key) {
         case "ArrowLeft": move2048("LEFT"); break;
@@ -263,11 +361,9 @@ export default function ArcadeModal() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activeGame, move2048]);
 
-
-  // ── [카드 뒤집기 Logic] ──
+  // ── [Card Game Logic] ──
   const initCards = () => {
     const pairEmojis = [...EMOJIS, ...EMOJIS];
-    // 피셔-예이츠 셔플
     for (let i = pairEmojis.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pairEmojis[i], pairEmojis[j]] = [pairEmojis[j], pairEmojis[i]];
@@ -303,7 +399,6 @@ export default function ArcadeModal() {
 
       const [first, second] = nextSelected;
       if (cards[first].emoji === cards[second].emoji) {
-        // 일치
         setTimeout(() => {
           setCards((prev) => {
             const updated = prev.map((c, i) =>
@@ -318,7 +413,6 @@ export default function ArcadeModal() {
           setIsCheckingCards(false);
         }, 500);
       } else {
-        // 불일치 - 원상 복구
         setTimeout(() => {
           setCards((prev) =>
             prev.map((c, i) =>
@@ -332,8 +426,302 @@ export default function ArcadeModal() {
     }
   };
 
+  // ── [3. 스피드 암산 왕 Logic] ──
+  const generateSpeedQuestion = useCallback(() => {
+    const ops = ["+", "-", "×"];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    let a = 0, b = 0, ans = 0;
 
-  // ── [2048 타일 색상 반환 함수] ──
+    if (op === "+") {
+      a = Math.floor(Math.random() * 40) + 1;
+      b = Math.floor(Math.random() * 40) + 1;
+      ans = a + b;
+    } else if (op === "-") {
+      a = Math.floor(Math.random() * 50) + 10;
+      b = Math.floor(Math.random() * a) + 1;
+      ans = a - b;
+    } else {
+      a = Math.floor(Math.random() * 8) + 2;
+      b = Math.floor(Math.random() * 8) + 2;
+      ans = a * b;
+    }
+
+    const wrongSet = new Set<number>();
+    while (wrongSet.size < 3) {
+      const offset = (Math.floor(Math.random() * 7) + 1) * (Math.random() < 0.5 ? 1 : -1);
+      const wrong = ans + offset;
+      if (wrong > 0 && wrong !== ans) {
+        wrongSet.add(wrong);
+      }
+    }
+    const options = Array.from(wrongSet);
+    options.push(ans);
+    for (let i = options.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [options[i], options[j]] = [options[j], options[i]];
+    }
+
+    setSpeedQuestion({ text: `${a} ${op} ${b} = ?`, answer: ans, options });
+  }, []);
+
+  const initSpeedMath = useCallback(() => {
+    setSpeedScore(0);
+    setSpeedCombo(0);
+    setSpeedTimeLeft(30);
+    setSpeedIsActive(true);
+    setSpeedIsOver(false);
+    setSpeedFeedback(null);
+    const savedBest = localStorage.getItem("bestScoreSpeedMath");
+    if (savedBest) setSpeedBestScore(parseInt(savedBest));
+    generateSpeedQuestion();
+  }, [generateSpeedQuestion]);
+
+  useEffect(() => {
+    if (!speedIsActive || speedTimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setSpeedTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setSpeedIsActive(false);
+          setSpeedIsOver(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [speedIsActive, speedTimeLeft]);
+
+  const handleSpeedAnswer = (chosen: number) => {
+    if (!speedIsActive || !speedQuestion) return;
+
+    if (chosen === speedQuestion.answer) {
+      const earned = 100 + speedCombo * 20;
+      const newScore = speedScore + earned;
+      setSpeedScore(newScore);
+      setSpeedCombo(prev => prev + 1);
+      setSpeedFeedback(`+${earned} ${speedCombo > 0 ? `🔥 ${speedCombo + 1}연속!` : "정답!"}`);
+
+      setSpeedBestScore(prev => {
+        const nextBest = Math.max(prev, newScore);
+        localStorage.setItem("bestScoreSpeedMath", nextBest.toString());
+        return nextBest;
+      });
+    } else {
+      setSpeedCombo(0);
+      setSpeedFeedback("❌ 아쉽네요!");
+    }
+    generateSpeedQuestion();
+  };
+
+  // ── [4. 24 만들기 Logic] ──
+  const initMake24 = useCallback(() => {
+    const nextIdx = Math.floor(Math.random() * MAKE24_PUZZLES.length);
+    setMake24PuzzleIndex(nextIdx);
+    setMake24Used([false, false, false, false]);
+    setMake24Tokens([]);
+    setMake24IsWon(false);
+    setMake24ShowHint(false);
+    setMake24Message(null);
+  }, []);
+
+  const handleMake24NumberClick = (index: number) => {
+    if (make24Used[index] || make24IsWon) return;
+    const num = MAKE24_PUZZLES[make24PuzzleIndex].nums[index];
+    const newUsed = [...make24Used];
+    newUsed[index] = true;
+    setMake24Used(newUsed);
+    setMake24Tokens(prev => [...prev, num.toString()]);
+    setMake24Message(null);
+  };
+
+  const handleMake24OpClick = (op: string) => {
+    if (make24IsWon) return;
+    setMake24Tokens(prev => [...prev, op]);
+    setMake24Message(null);
+  };
+
+  const handleMake24Undo = () => {
+    if (make24Tokens.length === 0 || make24IsWon) return;
+    const lastToken = make24Tokens[make24Tokens.length - 1];
+    const newTokens = make24Tokens.slice(0, -1);
+    setMake24Tokens(newTokens);
+    setMake24Message(null);
+
+    const puzzleNums = MAKE24_PUZZLES[make24PuzzleIndex].nums;
+    for (let i = 0; i < 4; i++) {
+      if (make24Used[i] && puzzleNums[i].toString() === lastToken) {
+        const newUsed = [...make24Used];
+        newUsed[i] = false;
+        setMake24Used(newUsed);
+        break;
+      }
+    }
+  };
+
+  const handleMake24Clear = () => {
+    setMake24Used([false, false, false, false]);
+    setMake24Tokens([]);
+    setMake24Message(null);
+  };
+
+  const evaluateMake24 = () => {
+    if (!make24Used.every(Boolean)) {
+      setMake24Message("⚠️ 4개 숫자를 모두 사용해야 합니다!");
+      return;
+    }
+    const expr = make24Tokens.join(" ").replace(/×/g, "*").replace(/÷/g, "/");
+    try {
+      const result = Function(`"use strict"; return (${expr})`)();
+      if (Math.abs(result - 24) < 0.0001) {
+        setMake24IsWon(true);
+        setMake24Score(prev => prev + 100);
+        setMake24Message("🎉 정답! 24가 완성되었습니다!");
+      } else {
+        setMake24Message(`계산 결과: ${Number(result.toFixed(2))} (24가 아닙니다)`);
+      }
+    } catch {
+      setMake24Message("⚠️ 수식이 올바르지 않습니다!");
+    }
+  };
+
+  // ── [5. 합쳐서 10! Logic] ──
+  const initMake10 = useCallback(() => {
+    const newGrid: Make10Tile[] = Array(16).fill(null).map((_, i) => ({
+      id: `tile10-${i}-${Date.now()}`,
+      val: Math.floor(Math.random() * 7) + 1,
+      selected: false
+    }));
+    setMake10Grid(newGrid);
+    setMake10Score(0);
+    setMake10TimeLeft(60);
+    setMake10IsActive(true);
+    setMake10IsOver(false);
+    setMake10Shake(false);
+    const savedBest = localStorage.getItem("bestScoreMake10");
+    if (savedBest) setMake10BestScore(parseInt(savedBest));
+  }, []);
+
+  useEffect(() => {
+    if (!make10IsActive || make10TimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setMake10TimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setMake10IsActive(false);
+          setMake10IsOver(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [make10IsActive, make10TimeLeft]);
+
+  const handleMake10TileClick = (index: number) => {
+    if (!make10IsActive) return;
+
+    const nextGrid = make10Grid.map((t, i) =>
+      i === index ? { ...t, selected: !t.selected } : t
+    );
+    setMake10Grid(nextGrid);
+
+    const selected = nextGrid.filter(t => t.selected);
+    const currentSum = selected.reduce((sum, t) => sum + t.val, 0);
+
+    if (currentSum === 10) {
+      const gained = selected.length * 100;
+      const newScore = make10Score + gained;
+      setMake10Score(newScore);
+
+      setMake10BestScore(prev => {
+        const nextBest = Math.max(prev, newScore);
+        localStorage.setItem("bestScoreMake10", nextBest.toString());
+        return nextBest;
+      });
+
+      setTimeout(() => {
+        setMake10Grid(prev =>
+          prev.map(t =>
+            t.selected
+              ? { id: `tile10-${Math.random()}`, val: Math.floor(Math.random() * 7) + 1, selected: false }
+              : t
+          )
+        );
+      }, 150);
+    } else if (currentSum > 10) {
+      setMake10Shake(true);
+      setTimeout(() => {
+        setMake10Grid(prev => prev.map(t => ({ ...t, selected: false })));
+        setMake10Shake(false);
+      }, 400);
+    }
+  };
+
+  // ── [6. 미니 스도쿠 Logic] ──
+  const checkSudokuConflicts = (board: number[][]) => {
+    const conflicts = Array(4).fill(null).map(() => Array(4).fill(false));
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        const val = board[r][c];
+        if (val === 0) continue;
+        for (let i = 0; i < 4; i++) {
+          if (i !== c && board[r][i] === val) conflicts[r][c] = true;
+          if (i !== r && board[i][c] === val) conflicts[r][c] = true;
+        }
+        const startR = Math.floor(r / 2) * 2;
+        const startC = Math.floor(c / 2) * 2;
+        for (let br = startR; br < startR + 2; br++) {
+          for (let bc = startC; bc < startC + 2; bc++) {
+            if ((br !== r || bc !== c) && board[br][bc] === val) {
+              conflicts[r][c] = true;
+            }
+          }
+        }
+      }
+    }
+    return conflicts;
+  };
+
+  const initSudoku = useCallback(() => {
+    const p = SUDOKU_PUZZLES[Math.floor(Math.random() * SUDOKU_PUZZLES.length)];
+    const boardCopy = p.initial.map(row => [...row]);
+    const initMap = p.initial.map(row => row.map(cell => cell !== 0));
+    setSudokuBoard(boardCopy);
+    setSudokuInitial(initMap);
+    setSudokuSelected(null);
+    setSudokuTimer(0);
+    setSudokuIsWon(false);
+    setSudokuIsActive(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sudokuIsActive || sudokuIsWon) return;
+    const interval = setInterval(() => {
+      setSudokuTimer(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sudokuIsActive, sudokuIsWon]);
+
+  const handleSudokuNumInput = (num: number) => {
+    if (!sudokuSelected || !sudokuIsActive || sudokuIsWon) return;
+    const { r, c } = sudokuSelected;
+    if (sudokuInitial[r][c]) return;
+
+    const nextBoard = sudokuBoard.map((row, ri) =>
+      row.map((val, ci) => (ri === r && ci === c ? num : val))
+    );
+    setSudokuBoard(nextBoard);
+
+    const conflicts = checkSudokuConflicts(nextBoard);
+    const hasConflict = conflicts.some(row => row.some(b => b));
+    const isFilled = nextBoard.every(row => row.every(val => val !== 0));
+
+    if (isFilled && !hasConflict) {
+      setSudokuIsWon(true);
+    }
+  };
+
   const getTileBg = (value: number) => {
     switch (value) {
       case 2: return "bg-slate-200 text-slate-800";
@@ -357,9 +745,9 @@ export default function ArcadeModal() {
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm" onClick={closeModal} />
 
-      <div className="glass relative w-full max-w-xl max-h-[90vh] animate-fade-in-up rounded-3xl overflow-hidden flex flex-col border border-white/10 shadow-2xl">
+      <div className="glass relative w-full max-w-2xl max-h-[90vh] animate-fade-in-up rounded-3xl overflow-hidden flex flex-col border border-white/10 shadow-2xl">
         {/* 상단바 */}
-        <div className="p-6 border-b border-white/5 flex items-center justify-between bg-white/5">
+        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/5">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🕹️</span>
             <h2 className="text-xl font-bold text-white">정찬T네 오락실</h2>
@@ -378,28 +766,68 @@ export default function ArcadeModal() {
         </div>
 
         {/* 바디 */}
-        <div className="flex-1 overflow-y-auto p-6 flex flex-col justify-center min-h-[400px]">
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col justify-center min-h-[440px]">
           {activeGame === "menu" && (
             /* ── [메뉴 화면] ── */
             <div className="space-y-6 animate-fade-in text-center">
-              <p className="text-sm text-slate-400">교실에서 가볍게 즐길 수 있는 미니 게임입니다!</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto pt-4">
+              <div>
+                <h3 className="text-lg font-bold text-white mb-1">🎮 게임 선택</h3>
+                <p className="text-xs text-slate-400">교실에서 친구들과 가볍게 즐길 수 있는 미니게임 모음입니다!</p>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-xl mx-auto pt-2">
                 <button
                   onClick={() => { setActiveGame("2048"); init2048(); }}
-                  className="group relative flex flex-col items-center gap-3 rounded-2xl border border-white/5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30 hover:shadow-2xl hover:shadow-indigo-500/10"
+                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-indigo-500/30 hover:shadow-xl shadow-indigo-500/10"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/20 text-3xl group-hover:scale-110 transition-transform">🧩</div>
-                  <h3 className="text-base font-bold text-white">2048</h3>
-                  <p className="text-xs text-slate-400">숫자를 병합해 2048 만들기</p>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/20 text-2xl group-hover:scale-110 transition-transform">🧩</div>
+                  <h3 className="text-sm font-bold text-white">2048</h3>
+                  <p className="text-[11px] text-slate-400">타일 합치기</p>
                 </button>
 
                 <button
                   onClick={() => { setActiveGame("cards"); initCards(); }}
-                  className="group relative flex flex-col items-center gap-3 rounded-2xl border border-white/5 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/10"
+                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-emerald-500/30 hover:shadow-xl shadow-emerald-500/10"
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/20 text-3xl group-hover:scale-110 transition-transform">🃏</div>
-                  <h3 className="text-base font-bold text-white">카드 뒤집기</h3>
-                  <p className="text-xs text-slate-400">기억력을 발휘해 짝을 맞추기</p>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/20 text-2xl group-hover:scale-110 transition-transform">🃏</div>
+                  <h3 className="text-sm font-bold text-white">카드 뒤집기</h3>
+                  <p className="text-[11px] text-slate-400">기억력 짝맞추기</p>
+                </button>
+
+                <button
+                  onClick={() => { setActiveGame("speedMath"); initSpeedMath(); }}
+                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-xl shadow-amber-500/10"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/20 text-2xl group-hover:scale-110 transition-transform">⚡</div>
+                  <h3 className="text-sm font-bold text-white">스피드 암산 왕</h3>
+                  <p className="text-[11px] text-slate-400">30초 연산 퀴즈</p>
+                </button>
+
+                <button
+                  onClick={() => { setActiveGame("make24"); initMake24(); }}
+                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-500/30 hover:shadow-xl shadow-cyan-500/10"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/20 text-2xl group-hover:scale-110 transition-transform">🔢</div>
+                  <h3 className="text-sm font-bold text-white">24 만들기</h3>
+                  <p className="text-[11px] text-slate-400">사칙연산 24 퍼즐</p>
+                </button>
+
+                <button
+                  onClick={() => { setActiveGame("make10"); initMake10(); }}
+                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-gradient-to-br from-rose-500/20 to-pink-500/20 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-rose-500/30 hover:shadow-xl shadow-rose-500/10"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-rose-500/20 text-2xl group-hover:scale-110 transition-transform">💣</div>
+                  <h3 className="text-sm font-bold text-white">합쳐서 10!</h3>
+                  <p className="text-[11px] text-slate-400">합10 팝업 터뜨리기</p>
+                </button>
+
+                <button
+                  onClick={() => { setActiveGame("sudoku"); initSudoku(); }}
+                  className="group relative flex flex-col items-center gap-2 rounded-2xl border border-white/5 bg-gradient-to-br from-purple-500/20 to-violet-500/20 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-purple-500/30 hover:shadow-xl shadow-purple-500/10"
+                >
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/20 text-2xl group-hover:scale-110 transition-transform">🧩</div>
+                  <h3 className="text-sm font-bold text-white">미니 스도쿠</h3>
+                  <p className="text-[11px] text-slate-400">4x4 논리 스도쿠</p>
                 </button>
               </div>
             </div>
@@ -408,7 +836,6 @@ export default function ArcadeModal() {
           {activeGame === "2048" && (
             /* ── [2048 게임 화면] ── */
             <div className="animate-fade-in flex flex-col items-center w-full">
-              {/* 스코어보드 */}
               <div className="flex gap-4 mb-6">
                 <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center min-w-[80px]">
                   <p className="text-[10px] text-slate-400 uppercase font-bold">Score</p>
@@ -426,9 +853,7 @@ export default function ArcadeModal() {
                 </button>
               </div>
 
-              {/* 보드 */}
               <div className="relative bg-slate-900 p-4 rounded-3xl border border-white/10 shadow-2xl w-full max-w-[340px] aspect-square">
-                {/* 1. 배경 그리드 (16개 빈 셀) */}
                 <div className="absolute inset-4 grid grid-cols-4 grid-rows-4 gap-[4%] pointer-events-none">
                   {Array(16).fill(null).map((_, i) => (
                     <div
@@ -438,25 +863,21 @@ export default function ArcadeModal() {
                   ))}
                 </div>
 
-                {/* 2. 실제 움직이는 타일 레이어 */}
                 <div className="absolute inset-4">
-                  {tiles.map((tile) => {
-                    return (
-                      <div
-                        key={tile.id}
-                        className={`absolute w-[22%] h-[22%] rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-150 ${getTileBg(tile.value)} ${tile.isNew ? "animate-pop" : ""} ${tile.isMerged ? "scale-110" : ""}`}
-                        style={{
-                          left: `${tile.col * 26}%`,
-                          top: `${tile.row * 26}%`,
-                        }}
-                      >
-                        {tile.value}
-                      </div>
-                    );
-                  })}
+                  {tiles.map((tile) => (
+                    <div
+                      key={tile.id}
+                      className={`absolute w-[22%] h-[22%] rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-150 ${getTileBg(tile.value)} ${tile.isNew ? "animate-pop" : ""} ${tile.isMerged ? "scale-110" : ""}`}
+                      style={{
+                        left: `${tile.col * 26}%`,
+                        top: `${tile.row * 26}%`,
+                      }}
+                    >
+                      {tile.value}
+                    </div>
+                  ))}
                 </div>
 
-                {/* 게임오버 레이어 */}
                 {isGameOver2048 && (
                   <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in z-20">
                     <span className="text-4xl mb-2">💀</span>
@@ -472,12 +893,10 @@ export default function ArcadeModal() {
                 )}
               </div>
 
-              {/* 조작 설명 */}
               <p className="mt-4 text-[11px] text-slate-500 text-center">
                 키보드 방향키(↑ ↓ ← →)를 누르면 블록들이 부드럽게 이동합니다.
               </p>
 
-              {/* 모바일 화면용 가상 조이패드 */}
               <div className="mt-6 flex flex-col items-center gap-1 sm:hidden">
                 <button onClick={() => move2048("UP")} className="w-12 h-12 bg-white/10 active:bg-white/20 rounded-xl flex items-center justify-center text-white">▲</button>
                 <div className="flex gap-4">
@@ -503,7 +922,6 @@ export default function ArcadeModal() {
                 </button>
               </div>
 
-              {/* 카드 그리드 */}
               <div className="relative w-full max-w-[340px] grid grid-cols-4 gap-3 aspect-square">
                 {cards.map((card, index) => {
                   const isShown = card.isFlipped || card.isMatched;
@@ -517,18 +935,14 @@ export default function ArcadeModal() {
                           : "cursor-pointer active:scale-95"
                       }`}
                     >
-                      {/* 카드 바깥 테두리 및 3D 플립 스타일 처리 */}
                       <div className={`w-full h-full rounded-2xl border transition-all duration-500 transform-style-3d ${
                         isShown
                           ? "border-emerald-500/20 bg-emerald-500/10 rotate-y-180"
                           : "border-white/10 bg-gradient-to-br from-slate-800 to-slate-900"
                       }`}>
-                        {/* 앞면 (뒤집혔을 때 혹은 매칭 시) */}
                         <div className="absolute inset-0 flex items-center justify-center text-3xl backface-hidden rotate-y-180 bg-emerald-500/10 rounded-2xl">
                           {card.emoji}
                         </div>
-
-                        {/* 뒷면 (초기 상태) */}
                         <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-black text-xl backface-hidden bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl">
                           ❓
                         </div>
@@ -537,7 +951,6 @@ export default function ArcadeModal() {
                   );
                 })}
 
-                {/* 성공 레이어 */}
                 {isWonCards && (
                   <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-3xl flex flex-col items-center justify-center p-6 text-center animate-fade-in z-20">
                     <span className="text-5xl mb-3 animate-bounce">🎉</span>
@@ -552,6 +965,300 @@ export default function ArcadeModal() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeGame === "speedMath" && (
+            /* ── [3. 스피드 암산 왕 화면] ── */
+            <div className="animate-fade-in flex flex-col items-center w-full max-w-md mx-auto">
+              <div className="flex justify-between items-center w-full mb-6 bg-slate-900/60 p-4 rounded-2xl border border-white/10">
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">SCORE</p>
+                  <p className="text-xl font-black text-amber-400">{speedScore}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold text-center">TIME</p>
+                  <p className={`text-xl font-black ${speedTimeLeft <= 5 ? "text-rose-500 animate-ping" : "text-white"}`}>
+                    ⏱️ {speedTimeLeft}초
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold text-right">BEST</p>
+                  <p className="text-xl font-black text-emerald-400 text-right">{speedBestScore}</p>
+                </div>
+              </div>
+
+              {speedFeedback && (
+                <div className="text-xs font-bold text-amber-300 mb-2 h-4 animate-fade-in">
+                  {speedFeedback}
+                </div>
+              )}
+
+              {speedIsActive && speedQuestion && (
+                <div className="w-full flex flex-col items-center gap-6">
+                  {/* 문제 수식 카드 */}
+                  <div className="w-full bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 p-8 rounded-3xl text-center shadow-xl">
+                    <span className="text-3xl font-black text-white tracking-widest">{speedQuestion.text}</span>
+                  </div>
+
+                  {/* 4지 선다 보기 버튼 */}
+                  <div className="grid grid-cols-2 gap-3 w-full">
+                    {speedQuestion.options.map((opt, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSpeedAnswer(opt)}
+                        className="bg-slate-800/80 hover:bg-amber-500/20 hover:border-amber-400/50 border border-white/10 text-white font-bold py-4 rounded-2xl text-xl transition-all active:scale-95 shadow-md"
+                      >
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {speedIsOver && (
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 text-center w-full animate-fade-in">
+                  <span className="text-4xl mb-2 inline-block">🏆</span>
+                  <h3 className="text-xl font-black text-white mb-1">타임 아웃!</h3>
+                  <p className="text-sm text-slate-400 mb-4">최종 획득 점수: <span className="text-amber-400 font-bold text-lg">{speedScore}점</span></p>
+                  <button
+                    onClick={initSpeedMath}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-black px-6 py-3 rounded-2xl text-base shadow-lg transition-all"
+                  >
+                    다시 도전하기
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeGame === "make24" && (
+            /* ── [4. 24 만들기 화면] ── */
+            <div className="animate-fade-in flex flex-col items-center w-full max-w-md mx-auto">
+              <div className="flex justify-between items-center w-full mb-4">
+                <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">SCORE</p>
+                  <p className="text-base font-black text-cyan-400">{make24Score}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setMake24ShowHint(!make24ShowHint)}
+                    className="bg-white/10 hover:bg-white/20 text-white font-bold px-3 py-2 rounded-xl text-xs transition-all"
+                  >
+                    💡 힌트
+                  </button>
+                  <button
+                    onClick={initMake24}
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold px-3 py-2 rounded-xl text-xs transition-all"
+                  >
+                    새 문제
+                  </button>
+                </div>
+              </div>
+
+              {make24ShowHint && (
+                <div className="bg-cyan-500/10 border border-cyan-500/30 p-3 rounded-xl text-xs text-cyan-300 text-center mb-4 w-full">
+                  💡 힌트 예시: <span className="font-bold text-white">{MAKE24_PUZZLES[make24PuzzleIndex].hint}</span>
+                </div>
+              )}
+
+              {/* 4개 지정 숫자 카카오 칩 */}
+              <div className="flex justify-center gap-3 w-full mb-6">
+                {MAKE24_PUZZLES[make24PuzzleIndex].nums.map((num, i) => (
+                  <button
+                    key={i}
+                    disabled={make24Used[i]}
+                    onClick={() => handleMake24NumberClick(i)}
+                    className={`w-14 h-14 rounded-2xl text-2xl font-black transition-all shadow-lg ${
+                      make24Used[i]
+                        ? "bg-slate-800 text-slate-600 border border-slate-700 opacity-40 cursor-not-allowed scale-95"
+                        : "bg-gradient-to-br from-cyan-500 to-blue-600 text-white border border-cyan-300/40 hover:scale-105 active:scale-95"
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+              </div>
+
+              {/* 입력 수식 창 */}
+              <div className="w-full bg-slate-900 border border-white/10 p-4 rounded-2xl text-center min-h-[60px] flex items-center justify-center mb-4 shadow-inner">
+                <span className="text-xl font-bold text-cyan-300 tracking-wider">
+                  {make24Tokens.length > 0 ? make24Tokens.join(" ") : "숫자와 연산자를 눌러 수식을 완성하세요"}
+                </span>
+              </div>
+
+              {make24Message && (
+                <div className="text-xs font-bold text-amber-300 mb-3 text-center">
+                  {make24Message}
+                </div>
+              )}
+
+              {/* 연산자 패드 및 기능 버튼 */}
+              <div className="w-full grid grid-cols-6 gap-2 mb-4">
+                {["+", "-", "×", "÷", "(", ")"].map((op) => (
+                  <button
+                    key={op}
+                    onClick={() => handleMake24OpClick(op)}
+                    className="bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-bold py-3 rounded-xl text-lg transition-all active:scale-95"
+                  >
+                    {op}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={handleMake24Undo}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl text-xs transition-all"
+                >
+                  ↩ 실행 취소
+                </button>
+                <button
+                  onClick={handleMake24Clear}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl text-xs transition-all"
+                >
+                  🧹 전체 지우기
+                </button>
+                <button
+                  onClick={evaluateMake24}
+                  className="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-black py-3 rounded-xl text-xs transition-all shadow-md"
+                >
+                  = 계산하기
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeGame === "make10" && (
+            /* ── [5. 합쳐서 10! 화면] ── */
+            <div className="animate-fade-in flex flex-col items-center w-full max-w-md mx-auto">
+              <div className="flex justify-between items-center w-full mb-4 bg-slate-900/60 p-3 rounded-2xl border border-white/10">
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold">SCORE</p>
+                  <p className="text-lg font-black text-rose-400">{make10Score}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold text-center">선택 합계</p>
+                  <p className="text-xl font-black text-white text-center">
+                    {make10Grid.filter(t => t.selected).reduce((s, t) => s + t.val, 0)} / 10
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-400 uppercase font-bold text-right">TIME</p>
+                  <p className="text-lg font-black text-amber-400 text-right">⏱️ {make10TimeLeft}초</p>
+                </div>
+              </div>
+
+              {/* 4x4 퍼즐 그리드 */}
+              <div className={`grid grid-cols-4 gap-3 w-full max-w-[320px] aspect-square p-3 bg-slate-900 rounded-3xl border border-white/10 ${make10Shake ? "animate-bounce" : ""}`}>
+                {make10Grid.map((tile, i) => (
+                  <button
+                    key={tile.id}
+                    onClick={() => handleMake10TileClick(i)}
+                    className={`w-full h-full rounded-2xl text-2xl font-black transition-all flex items-center justify-center ${
+                      tile.selected
+                        ? "bg-rose-500 text-white border-2 border-white scale-105 shadow-lg shadow-rose-500/40"
+                        : "bg-slate-800 text-slate-200 border border-white/10 hover:bg-slate-700"
+                    }`}
+                  >
+                    {tile.val}
+                  </button>
+                ))}
+              </div>
+
+              {make10IsOver && (
+                <div className="mt-4 bg-slate-900 border border-white/10 rounded-3xl p-6 text-center w-full animate-fade-in">
+                  <span className="text-4xl mb-2 inline-block">💣</span>
+                  <h3 className="text-xl font-black text-white mb-1">게임 완료!</h3>
+                  <p className="text-sm text-slate-400 mb-4">최종 점수: <span className="text-rose-400 font-bold text-lg">{make10Score}점</span></p>
+                  <button
+                    onClick={initMake10}
+                    className="bg-rose-500 hover:bg-rose-400 text-white font-black px-6 py-3 rounded-2xl text-base shadow-lg transition-all"
+                  >
+                    다시 하기
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeGame === "sudoku" && (
+            /* ── [6. 미니 스도쿠 화면] ── */
+            <div className="animate-fade-in flex flex-col items-center w-full max-w-md mx-auto">
+              <div className="flex justify-between items-center w-full mb-4">
+                <p className="text-sm font-bold text-slate-400">진행 시간: <span className="text-white text-base">⏱️ {sudokuTimer}초</span></p>
+                <button
+                  onClick={initSudoku}
+                  className="bg-purple-500 hover:bg-purple-400 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all"
+                >
+                  새 퍼즐
+                </button>
+              </div>
+
+              {/* 4x4 스도쿠 그리드 */}
+              <div className="grid grid-cols-4 gap-1 p-2 bg-slate-950 rounded-2xl border-2 border-purple-500/40 max-w-[280px] w-full aspect-square mb-4">
+                {sudokuBoard.map((row, r) =>
+                  row.map((val, c) => {
+                    const isInit = sudokuInitial[r]?.[c];
+                    const isSel = sudokuSelected?.r === r && sudokuSelected?.c === c;
+                    const conflicts = checkSudokuConflicts(sudokuBoard);
+                    const isConf = conflicts[r]?.[c];
+
+                    return (
+                      <button
+                        key={`${r}-${c}`}
+                        onClick={() => !isInit && setSudokuSelected({ r, c })}
+                        className={`w-full h-full text-xl font-black rounded-lg flex items-center justify-center transition-all ${
+                          isInit
+                            ? "bg-slate-800 text-purple-300 font-bold cursor-not-allowed"
+                            : isSel
+                            ? "bg-purple-500 text-white ring-2 ring-white"
+                            : isConf
+                            ? "bg-rose-500/40 text-rose-200 border border-rose-400"
+                            : val !== 0
+                            ? "bg-slate-900 text-purple-200 border border-white/10"
+                            : "bg-slate-900/50 text-slate-600 border border-white/5 hover:bg-white/5"
+                        } ${(r === 1 && c % 2 === 1) || (c === 1 && r % 2 === 1) ? "mb-1" : ""}`}
+                      >
+                        {val !== 0 ? val : ""}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* 숫자 입력 키패드 */}
+              <div className="flex gap-2 w-full max-w-[280px]">
+                {[1, 2, 3, 4].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => handleSudokuNumInput(n)}
+                    className="flex-1 bg-purple-600/30 hover:bg-purple-600/60 border border-purple-400/30 text-white font-black py-3 rounded-xl text-lg transition-all active:scale-95"
+                  >
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handleSudokuNumInput(0)}
+                  className="bg-white/10 hover:bg-white/20 text-slate-300 font-bold px-3 py-3 rounded-xl text-xs"
+                >
+                  지우기
+                </button>
+              </div>
+
+              {sudokuIsWon && (
+                <div className="mt-4 bg-slate-900 border border-purple-500/40 rounded-3xl p-6 text-center w-full animate-fade-in">
+                  <span className="text-4xl mb-2 inline-block">🎉</span>
+                  <h3 className="text-xl font-black text-white mb-1">스도쿠 성공!</h3>
+                  <p className="text-sm text-slate-400 mb-4">완성 시간: <span className="text-purple-400 font-bold">{sudokuTimer}초</span></p>
+                  <button
+                    onClick={initSudoku}
+                    className="bg-purple-500 hover:bg-purple-400 text-white font-bold px-6 py-3 rounded-2xl text-base shadow-lg transition-all"
+                  >
+                    다음 퍼즐하기
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
