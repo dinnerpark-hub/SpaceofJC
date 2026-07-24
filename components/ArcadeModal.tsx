@@ -7,9 +7,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
    - 2048 게임: 타일 슬라이딩 이동 & 그리드 정렬
    - 카드 뒤집기: 3D 카드리버스 게임
    - ⚡ 스피드 암산 왕: 타임어택 4지선다 연산 퀴즈
-   - 🔢 24 만들기: 4개 숫자로 24 수식 완성 퍼즐
+   - 🔢 24 만들기: 난이도 선택(쉬움/일반) & 2단계 힌트
    - 💣 합쳐서 10!: 타일 합 10 팝업 터뜨리기 퍼즐
-   - 🧩 미니 스도쿠: 4x4 초등/미니 스도쿠 퍼즐
+   - 🧩 미니 스도쿠: 4x4 2x2 서브블록 구분선 & 12종+퍼즐
    ======================================================= */
 
 interface Card {
@@ -37,22 +37,46 @@ interface Make10Tile {
 
 const EMOJIS = ["🍎", "🍌", "🍒", "🍇", "🍉", "🍓", "🥑", "🍍"];
 
-// ── [24 만들기 퍼즐 데이터] ──
-const MAKE24_PUZZLES = [
-  { nums: [3, 8, 2, 1], hint: "(3 - 1) × (8 + 2)" },
-  { nums: [2, 3, 4, 6], hint: "(2 + 4 - 3) × 6" },
-  { nums: [1, 2, 3, 4], hint: "(1 + 2 + 3) × 4" },
-  { nums: [4, 4, 4, 6], hint: "(4 - 4) + 4 × 6" },
-  { nums: [2, 4, 8, 8], hint: "(8 - 4) × 8 / 2" },
-  { nums: [5, 6, 7, 8], hint: "(5 + 7) × (8 - 6)" },
-  { nums: [1, 1, 4, 6], hint: "(1 + 1 + 4) × 6" },
-  { nums: [2, 3, 8, 9], hint: "(9 - 3) × (8 - 4)" },
-  { nums: [1, 4, 5, 6], hint: "4 / (1 - 5 / 6)" },
-  { nums: [3, 3, 8, 8], hint: "8 / (3 - 8 / 3)" }
+// ── [24 만들기 퍼즐 데이터 (쉬움 / 일반)] ──
+interface Make24Puzzle {
+  nums: number[];
+  step1Hint: string;
+  step2Hint: string;
+}
+
+const MAKE24_EASY_PUZZLES: Make24Puzzle[] = [
+  { nums: [6, 4, 1, 1], step1Hint: "6과 4를 곱해보세요!", step2Hint: "6 × 4 × 1 × 1" },
+  { nums: [3, 8, 1, 1], step1Hint: "3과 8을 곱해보세요!", step2Hint: "3 × 8 × 1 ÷ 1" },
+  { nums: [2, 3, 4, 1], step1Hint: "2 × 3 = 6을 만들고 4를 곱해보세요!", step2Hint: "2 × 3 × 4 × 1" },
+  { nums: [6, 2, 2, 1], step1Hint: "6 × 2 × 2를 계산해보세요!", step2Hint: "6 × 2 × 2 × 1" },
+  { nums: [4, 6, 2, 1], step1Hint: "4와 6을 곱해보세요!", step2Hint: "4 × 6 × (2 - 1)" },
+  { nums: [3, 7, 3, 1], step1Hint: "7 + 1 = 8을 만들고 3을 곱해보세요!", step2Hint: "(7 + 1) × 3" },
+  { nums: [9, 3, 2, 1], step1Hint: "9 - 1 = 8을 만들고 3을 곱해보세요!", step2Hint: "(9 - 1) × 3" },
+  { nums: [5, 5, 7, 7], step1Hint: "5 × 5 = 25를 만들고 7-7=0을 빼보세요!", step2Hint: "5 × 5 - (7 - 7)" },
+  { nums: [4, 4, 4, 3], step1Hint: "4 × 4 = 16을 먼저 만드세요!", step2Hint: "4 × 4 + 4 + 4" },
+  { nums: [2, 2, 8, 1], step1Hint: "2 + 1 = 3을 만든 뒤 8을 곱해보세요!", step2Hint: "(2 + 1) × 8" }
 ];
 
-// ── [스도쿠 퍼즐 데이터] ──
-const SUDOKU_PUZZLES = [
+const MAKE24_NORMAL_PUZZLES: Make24Puzzle[] = [
+  { nums: [3, 8, 2, 1], step1Hint: "3 - 1 = 2와 8 + 2 = 10을 활용해보세요!", step2Hint: "(3 - 1) × (8 + 2)" },
+  { nums: [2, 3, 4, 6], step1Hint: "2 + 4 - 3 = 3을 만들어 보세요!", step2Hint: "(2 + 4 - 3) × 6" },
+  { nums: [1, 2, 3, 4], step1Hint: "1 + 2 + 3 = 6을 만들어 보세요!", step2Hint: "(1 + 2 + 3) × 4" },
+  { nums: [4, 4, 4, 6], step1Hint: "4 - 4 = 0을 활용해보세요!", step2Hint: "(4 - 4) + 4 × 6" },
+  { nums: [2, 4, 8, 8], step1Hint: "8 - 4 = 4를 활용해보세요!", step2Hint: "(8 - 4) × 8 / 2" },
+  { nums: [5, 6, 7, 8], step1Hint: "5 + 7 = 12와 8 - 6 = 2를 만들어 보세요!", step2Hint: "(5 + 7) × (8 - 6)" },
+  { nums: [1, 1, 4, 6], step1Hint: "1 + 1 + 4 = 6을 만들어 보세요!", step2Hint: "(1 + 1 + 4) × 6" },
+  { nums: [2, 3, 8, 9], step1Hint: "9 - 3 = 6과 8 - 4=4 대신 (8-4)를 활용해보세요!", step2Hint: "(9 - 3) × (8 - 4)" },
+  { nums: [1, 4, 5, 6], step1Hint: "1 - 5/6 = 1/6을 만드는 고급 수식입니다!", step2Hint: "4 / (1 - 5 / 6)" },
+  { nums: [3, 3, 8, 8], step1Hint: "3 - 8/3 = 1/3을 만드는 난이도 높은 수식입니다!", step2Hint: "8 / (3 - 8 / 3)" }
+];
+
+// ── [스도쿠 퍼즐 데이터 (12종+, 적절한 난이도 4~5개 힌트)] ──
+interface SudokuPuzzle {
+  solution: number[][];
+  initial: number[][];
+}
+
+const SUDOKU_BASE_PUZZLES: SudokuPuzzle[] = [
   {
     solution: [
       [1, 2, 3, 4],
@@ -61,10 +85,10 @@ const SUDOKU_PUZZLES = [
       [4, 3, 2, 1]
     ],
     initial: [
-      [1, 0, 0, 4],
-      [0, 4, 1, 0],
-      [0, 1, 4, 0],
-      [4, 0, 0, 1]
+      [1, 0, 0, 0],
+      [0, 4, 0, 2],
+      [2, 0, 4, 0],
+      [0, 0, 0, 1]
     ]
   },
   {
@@ -75,10 +99,10 @@ const SUDOKU_PUZZLES = [
       [2, 1, 4, 3]
     ],
     initial: [
-      [0, 3, 0, 1],
-      [1, 0, 3, 0],
-      [0, 4, 0, 2],
-      [2, 0, 4, 0]
+      [0, 3, 0, 0],
+      [1, 0, 0, 4],
+      [0, 4, 1, 0],
+      [0, 0, 4, 0]
     ]
   },
   {
@@ -90,9 +114,79 @@ const SUDOKU_PUZZLES = [
     ],
     initial: [
       [2, 0, 0, 3],
-      [0, 3, 2, 0],
-      [0, 2, 3, 0],
+      [0, 3, 0, 0],
+      [0, 0, 3, 0],
       [3, 0, 0, 2]
+    ]
+  },
+  {
+    solution: [
+      [3, 1, 4, 2],
+      [4, 2, 1, 3],
+      [1, 3, 2, 4],
+      [2, 4, 3, 1]
+    ],
+    initial: [
+      [3, 0, 0, 0],
+      [0, 2, 1, 0],
+      [0, 3, 2, 0],
+      [0, 0, 0, 1]
+    ]
+  },
+  {
+    solution: [
+      [1, 4, 2, 3],
+      [2, 3, 1, 4],
+      [3, 1, 4, 2],
+      [4, 2, 3, 1]
+    ],
+    initial: [
+      [0, 4, 0, 0],
+      [2, 0, 1, 0],
+      [0, 1, 0, 2],
+      [0, 0, 3, 0]
+    ]
+  },
+  {
+    solution: [
+      [4, 1, 3, 2],
+      [3, 2, 4, 1],
+      [1, 4, 2, 3],
+      [2, 3, 1, 4]
+    ],
+    initial: [
+      [4, 0, 0, 2],
+      [0, 2, 0, 0],
+      [0, 0, 2, 0],
+      [2, 0, 0, 4]
+    ]
+  },
+  {
+    solution: [
+      [2, 1, 4, 3],
+      [4, 3, 2, 1],
+      [1, 2, 3, 4],
+      [3, 4, 1, 2]
+    ],
+    initial: [
+      [0, 1, 0, 3],
+      [4, 0, 0, 0],
+      [0, 0, 0, 4],
+      [3, 0, 1, 0]
+    ]
+  },
+  {
+    solution: [
+      [3, 4, 2, 1],
+      [2, 1, 3, 4],
+      [4, 3, 1, 2],
+      [1, 2, 4, 3]
+    ],
+    initial: [
+      [3, 0, 0, 1],
+      [0, 1, 0, 0],
+      [0, 0, 1, 0],
+      [1, 0, 0, 3]
     ]
   }
 ];
@@ -128,12 +222,13 @@ export default function ArcadeModal() {
   const [speedFeedback, setSpeedFeedback] = useState<string | null>(null);
 
   // ── [4. 24 만들기 State] ──
+  const [make24Mode, setMake24Mode] = useState<"easy" | "normal">("easy");
   const [make24PuzzleIndex, setMake24PuzzleIndex] = useState(0);
   const [make24Used, setMake24Used] = useState<boolean[]>([false, false, false, false]);
   const [make24Tokens, setMake24Tokens] = useState<string[]>([]);
   const [make24IsWon, setMake24IsWon] = useState(false);
   const [make24Score, setMake24Score] = useState(0);
-  const [make24ShowHint, setMake24ShowHint] = useState(false);
+  const [make24HintStep, setMake24HintStep] = useState<0 | 1 | 2>(0);
   const [make24Message, setMake24Message] = useState<string | null>(null);
 
   // ── [5. 합쳐서 10! State] ──
@@ -515,19 +610,31 @@ export default function ArcadeModal() {
   };
 
   // ── [4. 24 만들기 Logic] ──
+  const getMake24Puzzles = useCallback(() => {
+    return make24Mode === "easy" ? MAKE24_EASY_PUZZLES : MAKE24_NORMAL_PUZZLES;
+  }, [make24Mode]);
+
   const initMake24 = useCallback(() => {
-    const nextIdx = Math.floor(Math.random() * MAKE24_PUZZLES.length);
+    const list = getMake24Puzzles();
+    const nextIdx = Math.floor(Math.random() * list.length);
     setMake24PuzzleIndex(nextIdx);
     setMake24Used([false, false, false, false]);
     setMake24Tokens([]);
     setMake24IsWon(false);
-    setMake24ShowHint(false);
+    setMake24HintStep(0);
     setMake24Message(null);
-  }, []);
+  }, [getMake24Puzzles]);
+
+  useEffect(() => {
+    if (activeGame === "make24") {
+      initMake24();
+    }
+  }, [make24Mode, activeGame, initMake24]);
 
   const handleMake24NumberClick = (index: number) => {
     if (make24Used[index] || make24IsWon) return;
-    const num = MAKE24_PUZZLES[make24PuzzleIndex].nums[index];
+    const currentList = getMake24Puzzles();
+    const num = currentList[make24PuzzleIndex].nums[index];
     const newUsed = [...make24Used];
     newUsed[index] = true;
     setMake24Used(newUsed);
@@ -548,7 +655,8 @@ export default function ArcadeModal() {
     setMake24Tokens(newTokens);
     setMake24Message(null);
 
-    const puzzleNums = MAKE24_PUZZLES[make24PuzzleIndex].nums;
+    const currentList = getMake24Puzzles();
+    const puzzleNums = currentList[make24PuzzleIndex].nums;
     for (let i = 0; i < 4; i++) {
       if (make24Used[i] && puzzleNums[i].toString() === lastToken) {
         const newUsed = [...make24Used];
@@ -563,6 +671,10 @@ export default function ArcadeModal() {
     setMake24Used([false, false, false, false]);
     setMake24Tokens([]);
     setMake24Message(null);
+  };
+
+  const toggleMake24Hint = () => {
+    setMake24HintStep(prev => (prev === 0 ? 1 : prev === 1 ? 2 : 0) as 0 | 1 | 2);
   };
 
   const evaluateMake24 = () => {
@@ -658,7 +770,7 @@ export default function ArcadeModal() {
     }
   };
 
-  // ── [6. 미니 스도쿠 Logic] ──
+  // ── [6. 미니 스도쿠 Logic (퍼즐 치환 수열 생성 & 2x2 서브블록 구분)] ──
   const checkSudokuConflicts = (board: number[][]) => {
     const conflicts = Array(4).fill(null).map(() => Array(4).fill(false));
     for (let r = 0; r < 4; r++) {
@@ -683,8 +795,25 @@ export default function ArcadeModal() {
     return conflicts;
   };
 
+  // 랜덤 숫자 순열 매핑으로 끝없는 퍼즐 변형 생성
+  const permuteSudoku = (puzzle: SudokuPuzzle): SudokuPuzzle => {
+    const digits = [1, 2, 3, 4];
+    for (let i = digits.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [digits[i], digits[j]] = [digits[j], digits[i]];
+    }
+    const map = (val: number) => (val === 0 ? 0 : digits[val - 1]);
+
+    return {
+      solution: puzzle.solution.map(row => row.map(map)),
+      initial: puzzle.initial.map(row => row.map(map))
+    };
+  };
+
   const initSudoku = useCallback(() => {
-    const p = SUDOKU_PUZZLES[Math.floor(Math.random() * SUDOKU_PUZZLES.length)];
+    const baseP = SUDOKU_BASE_PUZZLES[Math.floor(Math.random() * SUDOKU_BASE_PUZZLES.length)];
+    const p = permuteSudoku(baseP);
+
     const boardCopy = p.initial.map(row => [...row]);
     const initMap = p.initial.map(row => row.map(cell => cell !== 0));
     setSudokuBoard(boardCopy);
@@ -1036,35 +1165,61 @@ export default function ArcadeModal() {
             /* ── [4. 24 만들기 화면] ── */
             <div className="animate-fade-in flex flex-col items-center w-full max-w-md mx-auto">
               <div className="flex justify-between items-center w-full mb-4">
-                <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center">
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">SCORE</p>
-                  <p className="text-base font-black text-cyan-400">{make24Score}</p>
+                {/* 난이도 선택 토글 */}
+                <div className="flex bg-slate-900 p-1 rounded-xl border border-white/10 gap-1">
+                  <button
+                    onClick={() => setMake24Mode("easy")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      make24Mode === "easy"
+                        ? "bg-emerald-500 text-slate-950 shadow-md"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    🟢 쉬움 모드
+                  </button>
+                  <button
+                    onClick={() => setMake24Mode("normal")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      make24Mode === "normal"
+                        ? "bg-cyan-500 text-slate-950 shadow-md"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    🔴 일반 모드
+                  </button>
                 </div>
+
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setMake24ShowHint(!make24ShowHint)}
-                    className="bg-white/10 hover:bg-white/20 text-white font-bold px-3 py-2 rounded-xl text-xs transition-all"
+                    onClick={toggleMake24Hint}
+                    className="bg-white/10 hover:bg-white/20 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-all"
                   >
-                    💡 힌트
+                    💡 힌트 {make24HintStep > 0 ? `(${make24HintStep}/2단계)` : ""}
                   </button>
                   <button
                     onClick={initMake24}
-                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold px-3 py-2 rounded-xl text-xs transition-all"
+                    className="bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-bold px-3 py-1.5 rounded-xl text-xs transition-all"
                   >
                     새 문제
                   </button>
                 </div>
               </div>
 
-              {make24ShowHint && (
-                <div className="bg-cyan-500/10 border border-cyan-500/30 p-3 rounded-xl text-xs text-cyan-300 text-center mb-4 w-full">
-                  💡 힌트 예시: <span className="font-bold text-white">{MAKE24_PUZZLES[make24PuzzleIndex].hint}</span>
+              {make24HintStep === 1 && (
+                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-xl text-xs text-amber-300 text-center mb-4 w-full animate-fade-in">
+                  💡 1단계 힌트: <span className="font-bold text-white">{getMake24Puzzles()[make24PuzzleIndex].step1Hint}</span>
+                </div>
+              )}
+
+              {make24HintStep === 2 && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-xs text-emerald-300 text-center mb-4 w-full animate-fade-in">
+                  💡 2단계 (완정 수식): <span className="font-bold text-white">{getMake24Puzzles()[make24PuzzleIndex].step2Hint}</span>
                 </div>
               )}
 
               {/* 4개 지정 숫자 카카오 칩 */}
               <div className="flex justify-center gap-3 w-full mb-6">
-                {MAKE24_PUZZLES[make24PuzzleIndex].nums.map((num, i) => (
+                {getMake24Puzzles()[make24PuzzleIndex].nums.map((num, i) => (
                   <button
                     key={i}
                     disabled={make24Used[i]}
@@ -1183,7 +1338,7 @@ export default function ArcadeModal() {
           )}
 
           {activeGame === "sudoku" && (
-            /* ── [6. 미니 스도쿠 화면] ── */
+            /* ── [6. 미니 스도쿠 화면 (2x2 서브블록 명확 구분)] ── */
             <div className="animate-fade-in flex flex-col items-center w-full max-w-md mx-auto">
               <div className="flex justify-between items-center w-full mb-4">
                 <p className="text-sm font-bold text-slate-400">진행 시간: <span className="text-white text-base">⏱️ {sudokuTimer}초</span></p>
@@ -1195,40 +1350,52 @@ export default function ArcadeModal() {
                 </button>
               </div>
 
-              {/* 4x4 스도쿠 그리드 */}
-              <div className="grid grid-cols-4 gap-1 p-2 bg-slate-950 rounded-2xl border-2 border-purple-500/40 max-w-[280px] w-full aspect-square mb-4">
-                {sudokuBoard.map((row, r) =>
-                  row.map((val, c) => {
-                    const isInit = sudokuInitial[r]?.[c];
-                    const isSel = sudokuSelected?.r === r && sudokuSelected?.c === c;
-                    const conflicts = checkSudokuConflicts(sudokuBoard);
-                    const isConf = conflicts[r]?.[c];
+              {/* 4x4 스도쿠 그리드 - 2x2 서브블록 4개 구조로 명확히 분리 */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 rounded-3xl border-2 border-purple-500/40 max-w-[300px] w-full aspect-square mb-4 shadow-2xl">
+                {[0, 1].map((br) =>
+                  [0, 1].map((bc) => (
+                    <div
+                      key={`${br}-${bc}`}
+                      className="grid grid-cols-2 gap-1.5 p-1.5 bg-slate-900/90 rounded-2xl border border-purple-500/30 shadow-inner"
+                    >
+                      {[0, 1].map((rOffset) =>
+                        [0, 1].map((cOffset) => {
+                          const r = br * 2 + rOffset;
+                          const c = bc * 2 + cOffset;
+                          const val = sudokuBoard[r]?.[c] ?? 0;
+                          const isInit = sudokuInitial[r]?.[c];
+                          const isSel = sudokuSelected?.r === r && sudokuSelected?.c === c;
+                          const conflicts = checkSudokuConflicts(sudokuBoard);
+                          const isConf = conflicts[r]?.[c];
 
-                    return (
-                      <button
-                        key={`${r}-${c}`}
-                        onClick={() => !isInit && setSudokuSelected({ r, c })}
-                        className={`w-full h-full text-xl font-black rounded-lg flex items-center justify-center transition-all ${
-                          isInit
-                            ? "bg-slate-800 text-purple-300 font-bold cursor-not-allowed"
-                            : isSel
-                            ? "bg-purple-500 text-white ring-2 ring-white"
-                            : isConf
-                            ? "bg-rose-500/40 text-rose-200 border border-rose-400"
-                            : val !== 0
-                            ? "bg-slate-900 text-purple-200 border border-white/10"
-                            : "bg-slate-900/50 text-slate-600 border border-white/5 hover:bg-white/5"
-                        } ${(r === 1 && c % 2 === 1) || (c === 1 && r % 2 === 1) ? "mb-1" : ""}`}
-                      >
-                        {val !== 0 ? val : ""}
-                      </button>
-                    );
-                  })
+                          return (
+                            <button
+                              key={`${r}-${c}`}
+                              onClick={() => !isInit && setSudokuSelected({ r, c })}
+                              className={`w-full h-full text-xl font-black rounded-xl flex items-center justify-center transition-all aspect-square ${
+                                isInit
+                                  ? "bg-slate-800/90 text-purple-300 font-bold cursor-not-allowed border border-purple-500/20"
+                                  : isSel
+                                  ? "bg-purple-500 text-white ring-2 ring-white shadow-lg shadow-purple-500/50"
+                                  : isConf
+                                  ? "bg-rose-500/40 text-rose-200 border border-rose-400 animate-pulse"
+                                  : val !== 0
+                                  ? "bg-slate-800 text-purple-200 border border-white/10"
+                                  : "bg-slate-900/60 text-slate-600 border border-white/5 hover:bg-white/10"
+                              }`}
+                            >
+                              {val !== 0 ? val : ""}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  ))
                 )}
               </div>
 
               {/* 숫자 입력 키패드 */}
-              <div className="flex gap-2 w-full max-w-[280px]">
+              <div className="flex gap-2 w-full max-w-[300px]">
                 {[1, 2, 3, 4].map((n) => (
                   <button
                     key={n}
