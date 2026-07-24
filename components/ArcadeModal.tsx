@@ -156,7 +156,7 @@ export default function ArcadeModal() {
           let nextC = c + vector.x;
 
           // 이동할 수 있는 가장 먼 빈 칸 찾기
-          while (inBounds(nextR, nextC) && !nextGrid[nextR][nextC] && !grid[nextR][nextC]) {
+          while (inBounds(nextR, nextC) && !nextGrid[nextR][nextC]) {
             currR = nextR;
             currC = nextC;
             nextR += vector.y;
@@ -165,7 +165,7 @@ export default function ArcadeModal() {
 
           let merged = false;
           if (inBounds(nextR, nextC)) {
-            const hitTile = nextGrid[nextR][nextC] || grid[nextR][nextC];
+            const hitTile = nextGrid[nextR][nextC];
             if (hitTile && hitTile.value === tile.value && !mergedIds.has(hitTile.id) && !hitTile.isMergedTo) {
               merged = true;
               mergedIds.add(hitTile.id);
@@ -429,16 +429,12 @@ export default function ArcadeModal() {
               {/* 보드 */}
               <div className="relative bg-slate-900 p-4 rounded-3xl border border-white/10 shadow-2xl w-full max-w-[340px] aspect-square">
                 {/* 1. 배경 그리드 (16개 빈 셀) */}
-                <div className="absolute inset-4">
-                  {Array(4).fill(null).map((_, r) => (
-                    <div key={r} className="flex justify-between w-full h-[22%] mb-[4%] last:mb-0">
-                      {Array(4).fill(null).map((_, c) => (
-                        <div
-                          key={c}
-                          className="w-[22%] h-full rounded-xl bg-slate-800/40 border border-white/5"
-                        />
-                      ))}
-                    </div>
+                <div className="absolute inset-4 grid grid-cols-4 grid-rows-4 gap-[4%] pointer-events-none">
+                  {Array(16).fill(null).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl bg-slate-800/40 border border-white/5 w-full h-full"
+                    />
                   ))}
                 </div>
 
