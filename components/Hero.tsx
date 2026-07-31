@@ -166,7 +166,7 @@ export default function Hero() {
         </div>
 
         {/* 대형 히어로 메인 타이틀 */}
-        <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl lg:text-8xl leading-[1.1] mt-2">
+        <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl lg:text-8xl leading-[1.1] mt-16 sm:mt-20 lg:mt-24">
           <span className="gradient-text">정찬T</span>와 함께 만드는
           <br />
           <span className="relative inline-block mt-1">
