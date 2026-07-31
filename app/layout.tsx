@@ -29,21 +29,29 @@ export default function RootLayout({
           crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
-        {/* KaTeX 수식 렌더링 CSS & JS */}
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
-          crossOrigin="anonymous"
+        {/* MathJax 3 수식 자바스크립트 엔진 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.MathJax = {
+                tex: {
+                  inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                  displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+                  processEscapes: true
+                },
+                options: {
+                  ignoreHtmlClass: 'tex2jax_ignore',
+                  processHtmlClass: 'tex2jax_process'
+                }
+              };
+            `,
+          }}
         />
         <script
-          src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
-          crossOrigin="anonymous"
-          defer
-        />
-        <script
-          src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/auto-render.min.js"
-          crossOrigin="anonymous"
-          defer
+          type="text/javascript"
+          id="MathJax-script"
+          async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"
         />
       </head>
       <body className="flex min-h-dvh flex-col">

@@ -11,13 +11,15 @@ interface Message {
 
 declare global {
   interface Window {
-    renderMathInElement?: (element: HTMLElement, options?: any) => void;
-    katex?: any;
+    MathJax?: {
+      typesetPromise?: (elements?: any[]) => Promise<any>;
+      typeset?: (elements?: any[]) => void;
+    };
   }
 }
 
 const sampleQuestions = [
-  "📐 이차방정식 근의 공식 공식 알려줘",
+  "📐 이차방정식 근의 공식 알려줘",
   "📐 피타고라스 정리 쉬운 예시 알려줘",
   "📐 미분과 적분의 차이가 뭐야?",
   "📐 삼각비 Sin, Cos, Tan 개념 설명해줘",
@@ -28,30 +30,26 @@ function MathMessageContent({ content }: { content: string }) {
 
   useEffect(() => {
     let attempts = 0;
-    const render = () => {
-      if (containerRef.current) {
-        if (typeof window !== "undefined" && window.renderMathInElement) {
-          try {
-            window.renderMathInElement(containerRef.current, {
-              delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "$", right: "$", display: false },
-                { left: "\\(", right: "\\)", display: false },
-                { left: "\\[", right: "\\]", display: true },
-              ],
-              throwOnError: false,
-            });
-          } catch (e) {
-            console.error("KaTeX render error:", e);
+    const triggerMathJax = () => {
+      if (containerRef.current && typeof window !== "undefined" && window.MathJax) {
+        try {
+          if (window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise([containerRef.current]).catch((err) =>
+              console.error("MathJax typeset error:", err)
+            );
+          } else if (window.MathJax.typeset) {
+            window.MathJax.typeset([containerRef.current]);
           }
-        } else if (attempts < 30) {
-          attempts++;
-          setTimeout(render, 100);
+        } catch (e) {
+          console.error("MathJax execution error:", e);
         }
+      } else if (attempts < 30) {
+        attempts++;
+        setTimeout(triggerMathJax, 150);
       }
     };
 
-    render();
+    triggerMathJax();
   }, [content]);
 
   return (
@@ -68,7 +66,7 @@ export default function MathChatModal() {
       id: "welcome",
       role: "assistant",
       content:
-        "안녕! 수학교사 정찬T의 **AI 수학 조교**야 📐✨\n수학 문제, 개념, 공식이나 풀이 과정에 대해 무엇이든 편하게 물어봐! 수식은 **LaTeX($...$)** 포맷으로 선명하게 표시돼.",
+        "안녕! 수학교사 정찬T의 **AI 수학 조교**야 📐✨\n수학 문제, 개념, 공식이나 풀이 과정에 대해 무엇이든 편하게 물어봐! 모든 수식은 TeX 표준 형식($...$)으로 자동으로 선명하게 출력돼.",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -77,42 +75,15 @@ export default function MathChatModal() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // KaTeX 스크립트 보장
+  // 메시지 업데이트 시 MathJax typeset 전체 재적용
   useEffect(() => {
-    if (typeof window !== "undefined" && !document.getElementById("katex-script")) {
-      const script = document.createElement("script");
-      script.id = "katex-script";
-      script.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
-      script.async = true;
-      document.head.appendChild(script);
-
-      const renderScript = document.createElement("script");
-      renderScript.id = "katex-render-script";
-      renderScript.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/auto-render.min.js";
-      renderScript.async = true;
-      document.head.appendChild(renderScript);
-    }
-  }, []);
-
-  // 메시지 업데이트 시 KaTeX 수학 수식 전체 렌더링 재시도
-  useEffect(() => {
-    const triggerKaTeX = () => {
-      if (chatContainerRef.current && window.renderMathInElement) {
-        try {
-          window.renderMathInElement(chatContainerRef.current, {
-            delimiters: [
-              { left: "$$", right: "$$", display: true },
-              { left: "$", right: "$", display: false },
-              { left: "\\(", right: "\\)", display: false },
-              { left: "\\[", right: "\\]", display: true },
-            ],
-            throwOnError: false,
-          });
-        } catch (e) {}
+    const triggerMathJaxGlobal = () => {
+      if (chatContainerRef.current && window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([chatContainerRef.current]).catch(() => {});
       }
     };
 
-    const timer = setTimeout(triggerKaTeX, 150);
+    const timer = setTimeout(triggerMathJaxGlobal, 200);
     return () => clearTimeout(timer);
   }, [messages, isOpen, loading]);
 
