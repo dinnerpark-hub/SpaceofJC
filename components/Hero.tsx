@@ -146,7 +146,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative isolate min-h-screen flex flex-col items-center justify-center px-4 pt-32 pb-24 sm:px-6 lg:pt-40">
+    <section className="relative isolate min-h-screen flex flex-col items-center justify-center px-4 pt-48 pb-24 sm:px-6 lg:pt-60">
       {/* ── 오로라 글로우 입체 배경 ── */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden">
         <div className="absolute -left-1/4 -top-24 h-[600px] w-[600px] rounded-full bg-indigo-600/20 blur-[130px] animate-pulse-glow" />
