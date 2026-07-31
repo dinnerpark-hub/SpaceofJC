@@ -29,11 +29,21 @@ export default function RootLayout({
           crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
-        {/* KaTeX 수식 렌더링 CSS */}
+        {/* KaTeX 수식 렌더링 CSS & JS */}
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
           crossOrigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+          crossOrigin="anonymous"
+          defer
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/auto-render.min.js"
+          crossOrigin="anonymous"
+          defer
         />
       </head>
       <body className="flex min-h-dvh flex-col">

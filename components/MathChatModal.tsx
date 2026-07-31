@@ -23,6 +23,44 @@ const sampleQuestions = [
   "📐 삼각비 Sin, Cos, Tan 개념 설명해줘",
 ];
 
+function MathMessageContent({ content }: { content: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let attempts = 0;
+    const render = () => {
+      if (containerRef.current) {
+        if (typeof window !== "undefined" && window.renderMathInElement) {
+          try {
+            window.renderMathInElement(containerRef.current, {
+              delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true },
+              ],
+              throwOnError: false,
+            });
+          } catch (e) {
+            console.error("KaTeX render error:", e);
+          }
+        } else if (attempts < 30) {
+          attempts++;
+          setTimeout(render, 100);
+        }
+      }
+    };
+
+    render();
+  }, [content]);
+
+  return (
+    <div ref={containerRef} className="whitespace-pre-wrap break-words leading-relaxed">
+      {content}
+    </div>
+  );
+}
+
 export default function MathChatModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -39,40 +77,42 @@ export default function MathChatModal() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // KaTeX 스크립트 로드
+  // KaTeX 스크립트 보장
   useEffect(() => {
-    if (!document.getElementById("katex-script")) {
+    if (typeof window !== "undefined" && !document.getElementById("katex-script")) {
       const script = document.createElement("script");
       script.id = "katex-script";
       script.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
       script.async = true;
-      document.body.appendChild(script);
+      document.head.appendChild(script);
 
       const renderScript = document.createElement("script");
       renderScript.id = "katex-render-script";
       renderScript.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/auto-render.min.js";
       renderScript.async = true;
-      document.body.appendChild(renderScript);
+      document.head.appendChild(renderScript);
     }
   }, []);
 
-  // 메시지 업데이트 시 KaTeX 수학 수식 자동 렌더링
+  // 메시지 업데이트 시 KaTeX 수학 수식 전체 렌더링 재시도
   useEffect(() => {
     const triggerKaTeX = () => {
       if (chatContainerRef.current && window.renderMathInElement) {
-        window.renderMathInElement(chatContainerRef.current, {
-          delimiters: [
-            { left: "$$", right: "$$", display: true },
-            { left: "$", right: "$", display: false },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "\\[", right: "\\]", display: true },
-          ],
-          throwOnError: false,
-        });
+        try {
+          window.renderMathInElement(chatContainerRef.current, {
+            delimiters: [
+              { left: "$$", right: "$$", display: true },
+              { left: "$", right: "$", display: false },
+              { left: "\\(", right: "\\)", display: false },
+              { left: "\\[", right: "\\]", display: true },
+            ],
+            throwOnError: false,
+          });
+        } catch (e) {}
       }
     };
 
-    const timer = setTimeout(triggerKaTeX, 100);
+    const timer = setTimeout(triggerKaTeX, 150);
     return () => clearTimeout(timer);
   }, [messages, isOpen, loading]);
 
@@ -239,9 +279,7 @@ export default function MathChatModal() {
                 {m.role === "assistant" && (
                   <span className="text-xl shrink-0 mt-0.5">📐</span>
                 )}
-                <div className="whitespace-pre-wrap break-words">
-                  {m.content}
-                </div>
+                <MathMessageContent content={m.content} />
               </div>
               <span className="mt-1 px-1 text-[10px] text-slate-500">
                 {m.timestamp}
