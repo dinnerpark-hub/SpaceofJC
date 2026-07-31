@@ -45,7 +45,16 @@ body {
     radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
     radial-gradient(at 50% 100%, rgba(236, 72, 153, 0.08) 0px, transparent 50%);
   background-attachment: fixed;
+  /* 𝜋 (수학 기호 파이) 커스텀 마우스 커서 */
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><text x='4' y='24' font-family='Georgia, Cambria, serif' font-size='26' font-weight='bold' fill='%23c084fc'>π</text></svg>") 4 4, auto;
 }
+
+/* 버튼, 링크 등 클릭 가능한 요소 커서 호버 (글로우 링 𝜋) */
+button, a, input, select, textarea, [role="button"] {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'><circle cx='18' cy='18' r='15' fill='%236366f1' fill-opacity='0.25' stroke='%23f472b6' stroke-width='2'/><text x='18' y='24' text-anchor='middle' font-family='Georgia, Cambria, serif' font-size='22' font-weight='bold' fill='%23ffffff'>π</text></svg>") 18 18, pointer !important;
+}
+
+
 
 /* 스크롤바 커스텀 */
 ::-webkit-scrollbar {
