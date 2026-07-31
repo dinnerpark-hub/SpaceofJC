@@ -22,6 +22,18 @@ interface Dday {
 
 const features = [
   {
+    hash: "#math-chat",
+    icon: "📐",
+    title: "AI 수학 챗봇 (Math AI)",
+    desc: "수학 문제, 공식, 개념 등 모르는 것을 24시간 언제든 물어보세요!",
+    badge: "AI TUTOR",
+    gradient: "from-indigo-500/30 via-purple-500/20 to-pink-500/20",
+    glowColor: "group-hover:shadow-indigo-500/30",
+    borderColor: "border-indigo-500/40",
+    badgeBg: "bg-indigo-500 text-white",
+    gridClass: "col-span-1 md:col-span-2 lg:col-span-2 row-span-1",
+  },
+  {
     hash: "#arcade",
     icon: "🕹️",
     title: "오락실 (Arcade)",
@@ -31,7 +43,7 @@ const features = [
     glowColor: "group-hover:shadow-cyan-500/20",
     borderColor: "border-cyan-500/30",
     badgeBg: "bg-cyan-500 text-slate-950",
-    gridClass: "col-span-1 md:col-span-2 lg:col-span-2 row-span-1",
+    gridClass: "col-span-1 md:col-span-1 lg:col-span-1 row-span-1",
   },
   {
     hash: "#dday",
@@ -49,7 +61,7 @@ const features = [
     hash: "#questions",
     icon: "💬",
     title: "익명 질문함",
-    desc: "선생님과 친구들에게 전하고 싶은 질문이나 고민을 자유롭게 솔직하게 남겨보세요.",
+    desc: "선생님과 친구들에게 전하고 싶은 질문이나 고민을 자유롭게 남겨보세요.",
     badge: "ANONYMOUS",
     gradient: "from-emerald-500/20 via-teal-500/20 to-cyan-500/20",
     glowColor: "group-hover:shadow-emerald-500/20",
@@ -175,21 +187,30 @@ export default function Hero() {
         {/* CTA 버튼 그룹 */}
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full max-w-md sm:max-w-none">
           <a
-            href="#students"
+            href="#math-chat"
             className="group relative inline-flex w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 px-9 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/25 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/40 hover:-translate-y-1 active:translate-y-0"
           >
-            <span className="text-xl transition-transform group-hover:scale-125 duration-300">🎒</span>
-            <span>우리 반 학생 목록</span>
+            <span className="text-xl transition-transform group-hover:scale-125 duration-300">📐</span>
+            <span>AI 수학 챗봇 시작하기</span>
+          </a>
+
+          <a
+            href="#students"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-3 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md px-8 py-4 text-base font-bold text-slate-200 shadow-lg transition-all duration-300 hover:border-indigo-500/40 hover:bg-slate-800/80 hover:text-white hover:-translate-y-1 active:translate-y-0"
+          >
+            <span className="text-xl">🎒</span>
+            <span>학생 목록</span>
           </a>
 
           <a
             href="#arcade"
-            className="inline-flex w-full sm:w-auto items-center justify-center gap-3 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md px-9 py-4 text-base font-bold text-slate-200 shadow-lg transition-all duration-300 hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white hover:-translate-y-1 active:translate-y-0"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-3 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-md px-8 py-4 text-base font-bold text-slate-200 shadow-lg transition-all duration-300 hover:border-cyan-500/40 hover:bg-slate-800/80 hover:text-white hover:-translate-y-1 active:translate-y-0"
           >
             <span className="text-xl">🕹️</span>
-            <span>오락실 가기</span>
+            <span>오락실</span>
           </a>
         </div>
+
 
         {/* ── 실시간 알림 글래스 위젯 (공지사항 & D-Day) ── */}
         <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">

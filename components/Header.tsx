@@ -9,6 +9,7 @@ import Link from "next/link";
 
 const navLinks = [
   { href: "/", label: "홈", icon: "🏠" },
+  { href: "#math-chat", label: "수학 챗봇", icon: "📐" },
   { href: "#students", label: "학생목록", icon: "👨‍🎓" },
   { href: "#notices", label: "공지사항", icon: "📢" },
   { href: "#arcade", label: "오락실", icon: "🕹️" },

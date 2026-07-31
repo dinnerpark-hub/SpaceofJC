@@ -7,6 +7,7 @@ import QuestionModal from "@/components/QuestionModal";
 import GalleryModal from "@/components/GalleryModal";
 import PollModal from "@/components/PollModal";
 import ArcadeModal from "@/components/ArcadeModal";
+import MathChatModal from "@/components/MathChatModal";
 import Footer from "@/components/Footer";
 
 /* ===================================
@@ -32,8 +33,10 @@ export default function Home() {
       <GalleryModal />
       <PollModal />
       <ArcadeModal />
+      <MathChatModal />
 
       <Footer />
     </>
   );
 }
+
