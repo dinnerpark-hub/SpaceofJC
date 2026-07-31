@@ -146,7 +146,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative isolate min-h-screen flex flex-col items-center justify-center px-4 pt-48 pb-24 sm:px-6 lg:pt-60">
+    <section className="relative isolate min-h-screen flex flex-col items-center justify-center px-4 pt-64 pb-24 sm:px-6 lg:pt-80">
       {/* ── 오로라 글로우 입체 배경 ── */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 flex items-center justify-center overflow-hidden">
         <div className="absolute -left-1/4 -top-24 h-[600px] w-[600px] rounded-full bg-indigo-600/20 blur-[130px] animate-pulse-glow" />
@@ -155,9 +155,9 @@ export default function Hero() {
       </div>
 
       {/* ── 히어로 메인 문구 및 서브 ── */}
-      <div className="mx-auto max-w-5xl text-center animate-fade-in-up flex flex-col items-center">
+      <div className="mx-auto max-w-5xl text-center animate-fade-in-up flex flex-col items-center pt-6 sm:pt-10">
         {/* 상단 뱃지 */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300 backdrop-blur-md shadow-lg shadow-indigo-500/10 mb-8">
+        <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300 backdrop-blur-md shadow-lg shadow-indigo-500/10 mb-10">
           <span className="relative flex h-2.5 w-2.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
@@ -166,7 +166,7 @@ export default function Hero() {
         </div>
 
         {/* 대형 히어로 메인 타이틀 */}
-        <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl lg:text-8xl leading-[1.1]">
+        <h1 className="text-5xl font-black tracking-tight text-white sm:text-7xl lg:text-8xl leading-[1.1] mt-2">
           <span className="gradient-text">정찬T</span>와 함께 만드는
           <br />
           <span className="relative inline-block mt-1">
