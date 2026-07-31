@@ -29,7 +29,12 @@ export default function RootLayout({
           crossOrigin="anonymous"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
-        {/* 여기에 추가 <head> 요소를 넣으세요 (파비콘, 외부 스크립트 등) */}
+        {/* KaTeX 수식 렌더링 CSS */}
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className="flex min-h-dvh flex-col">
         {children}

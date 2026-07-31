@@ -9,8 +9,15 @@ interface Message {
   timestamp: string;
 }
 
+declare global {
+  interface Window {
+    renderMathInElement?: (element: HTMLElement, options?: any) => void;
+    katex?: any;
+  }
+}
+
 const sampleQuestions = [
-  "📐 근의 공식이 뭐야?",
+  "📐 이차방정식 근의 공식 공식 알려줘",
   "📐 피타고라스 정리 쉬운 예시 알려줘",
   "📐 미분과 적분의 차이가 뭐야?",
   "📐 삼각비 Sin, Cos, Tan 개념 설명해줘",
@@ -23,13 +30,51 @@ export default function MathChatModal() {
       id: "welcome",
       role: "assistant",
       content:
-        "안녕! 수학교사 정찬T의 **AI 수학 조교**야 📐✨\n수학 문제, 개념, 공식이나 풀이 과정에 대해 무엇이든 편하게 물어봐!",
+        "안녕! 수학교사 정찬T의 **AI 수학 조교**야 📐✨\n수학 문제, 개념, 공식이나 풀이 과정에 대해 무엇이든 편하게 물어봐! 수식은 **LaTeX($...$)** 포맷으로 선명하게 표시돼.",
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  // KaTeX 스크립트 로드
+  useEffect(() => {
+    if (!document.getElementById("katex-script")) {
+      const script = document.createElement("script");
+      script.id = "katex-script";
+      script.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js";
+      script.async = true;
+      document.body.appendChild(script);
+
+      const renderScript = document.createElement("script");
+      renderScript.id = "katex-render-script";
+      renderScript.src = "https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/auto-render.min.js";
+      renderScript.async = true;
+      document.body.appendChild(renderScript);
+    }
+  }, []);
+
+  // 메시지 업데이트 시 KaTeX 수학 수식 자동 렌더링
+  useEffect(() => {
+    const triggerKaTeX = () => {
+      if (chatContainerRef.current && window.renderMathInElement) {
+        window.renderMathInElement(chatContainerRef.current, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false },
+            { left: "\\(", right: "\\)", display: false },
+            { left: "\\[", right: "\\]", display: true },
+          ],
+          throwOnError: false,
+        });
+      }
+    };
+
+    const timer = setTimeout(triggerKaTeX, 100);
+    return () => clearTimeout(timer);
+  }, [messages, isOpen, loading]);
 
   useEffect(() => {
     const handleHash = () => {
@@ -176,7 +221,7 @@ export default function MathChatModal() {
         </div>
 
         {/* 대화 영역 */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-950/40">
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-slate-950/40">
           {messages.map((m) => (
             <div
               key={m.id}
