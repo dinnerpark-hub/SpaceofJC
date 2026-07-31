@@ -1,16 +1,15 @@
 @import "tailwindcss";
 
 /* ===================================
-   정찬샘의 스페이스 - 글로벌 스타일
+   정찬샘의 스페이스 - 프리미엄 글로벌 스타일
    =================================== */
 
-/* 커스텀 CSS 변수 (테마 확장 시 여기서 관리) */
 :root {
   --color-primary: #6366f1;
   --color-primary-dark: #4f46e5;
   --color-accent: #f59e0b;
-  --color-bg-dark: #0f172a;
-  --color-bg-card: #1e293b;
+  --color-bg-dark: #090d16;
+  --color-bg-card: #111827;
   --color-text-primary: #f8fafc;
   --color-text-secondary: #94a3b8;
   --font-sans: "Pretendard Variable", "Pretendard", -apple-system,
@@ -30,6 +29,7 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
@@ -39,32 +39,53 @@ body {
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(236, 72, 153, 0.08) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
 /* 스크롤바 커스텀 */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-dark);
+  background: #090d16;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #1e293b;
+  border-radius: 9999px;
+  border: 2px solid #090d16;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #334155;
 }
 
-/* 유틸리티: 글래스모피즘 효과 */
+/* 프리미엄 글래스모피즘 효과 */
 .glass {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(148, 163, 184, 0.1);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-/* 유틸리티: 그라디언트 텍스트 */
+.glass-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 25px 60px rgba(99, 102, 241, 0.15);
+}
+
+/* 텍스트 그라데이션 유틸리티 */
 .gradient-text {
   background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%);
   -webkit-background-clip: text;
@@ -72,11 +93,25 @@ body {
   background-clip: text;
 }
 
-/* 유틸리티: 부드러운 등장 애니메이션 */
+.gradient-text-gold {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-cyan {
+  background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 애니메이션 및 키프레임 */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(24px);
+    transform: translateY(28px);
   }
   to {
     opacity: 1;
@@ -84,13 +119,39 @@ body {
   }
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.7s ease-out forwards;
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
 }
 
-/* 여기에 추가 글로벌 스타일을 작성하세요 */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
 
-/* 커스텀 스크롤바 (StudentEntry 명단 영역) */
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 6s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+/* 커스텀 스크롤바 (StudentEntry 등) */
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
@@ -102,7 +163,7 @@ body {
   border-radius: 2px;
 }
 
-/* number input 화살표(spinner) 숨기기 */
+/* number input 화살표 숨기기 */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -112,7 +173,7 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* --- 오락실 카드 뒤집기 3D 효과 --- */
+/* 오락실 카드 뒤집기 3D 효과 */
 .perspective-1000 {
   perspective: 1000px;
 }
@@ -142,4 +203,5 @@ input[type="number"] {
 .animate-pop {
   animation: pop 200ms ease-in-out forwards;
 }
+
 
